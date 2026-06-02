@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>クレーンまるばつロボ</title>
+  <title>クレーンロボ コントローラー</title>
   <style>
     :root {
       color-scheme: light;
@@ -50,6 +50,7 @@
       background: #ffffff;
       font-size: 14px;
       font-weight: 700;
+      text-align: center;
     }
 
     .toolbar,
@@ -89,6 +90,7 @@
       font-size: 16px;
       font-weight: 750;
       cursor: pointer;
+      padding: 0 16px;
     }
 
     button:hover {
@@ -118,7 +120,7 @@
 
     .turn {
       display: grid;
-      grid-template-columns: 1fr auto;
+      grid-template-columns: 1fr auto auto;
       gap: 10px;
       align-items: center;
       padding: 14px;
@@ -139,63 +141,61 @@
       font-size: 18px;
     }
 
-    .badge.red {
-      background: #d92d20;
-    }
+    .badge.red { background: #d92d20; }
+    .badge.blue { background: #2563eb; }
 
-    .badge.blue {
-      background: #2563eb;
-    }
-
-    .board {
+    /* チンチロ用スタイル */
+    .chinchiro-area {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 10px;
+      gap: 12px;
     }
-
-    .cell {
-      aspect-ratio: 1;
-      min-height: 96px;
+    .dice-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 16px;
+      font-weight: bold;
+    }
+    .dice-group {
+      display: flex;
+      gap: 6px;
+    }
+    .die {
       display: grid;
       place-items: center;
+      width: 36px;
+      height: 36px;
       border: 2px solid #8fa3b8;
+      border-radius: 6px;
       background: #fbfcfd;
-      font-size: 42px;
+      font-size: 20px;
+      font-weight: 900;
+    }
+    .die.red { color: #d92d20; border-color: #d92d20; background: #fff1f0;}
+    .die.blue { color: #2563eb; border-color: #2563eb; background: #eff6ff;}
+    .yaku-result {
+      min-width: 100px;
+      text-align: right;
+      color: #4a5568;
+    }
+    .chinchiro-message {
+      font-size: 18px;
+      font-weight: bold;
+      text-align: center;
+      padding: 8px;
+      background: #fff2cc;
+      border-radius: 8px;
+      margin-bottom: 8px;
     }
 
-    .cell.red {
-      color: #d92d20;
-      border-color: #d92d20;
-      background: #fff1f0;
-    }
-
-    .cell.blue {
-      color: #2563eb;
-      border-color: #2563eb;
-      background: #eff6ff;
-    }
-
-    .cell:disabled {
-      cursor: not-allowed;
-      opacity: 1;
-    }
-
-    .manual {
-      display: grid;
-      gap: 10px;
-    }
-
+    .manual { display: grid; gap: 10px; }
     .axis {
       display: grid;
       grid-template-columns: 86px 1fr 1fr;
       gap: 8px;
       align-items: center;
     }
-
-    label {
-      font-weight: 750;
-    }
-
+    label { font-weight: 750; }
     input {
       width: 96px;
       min-height: 40px;
@@ -205,40 +205,15 @@
       padding: 0 10px;
       font-size: 16px;
     }
-
-    .field {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
+    .field { display: flex; align-items: center; gap: 8px; }
     .magnet {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 8px;
     }
 
-    .crane {
-      display: grid;
-      gap: 10px;
-    }
-
-    .result-actions {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 10px;
-      margin-top: 12px;
-    }
-
-    details {
-      margin-top: 8px;
-    }
-
-    summary {
-      cursor: pointer;
-      font-weight: 800;
-    }
-
+    details { margin-top: 8px; }
+    summary { cursor: pointer; font-weight: 800; }
     pre {
       height: 150px;
       margin: 0;
@@ -252,21 +227,16 @@
     }
 
     @media (max-width: 820px) {
-      header,
-      .layout {
-        grid-template-columns: 1fr;
-      }
-
-      .axis {
-        grid-template-columns: 76px 1fr 1fr;
-      }
+      header, .layout { grid-template-columns: 1fr; }
+      .axis { grid-template-columns: 76px 1fr 1fr; }
+      .turn { grid-template-columns: 1fr; text-align: center; justify-items: center;}
     }
   </style>
 </head>
 <body>
   <main>
     <header>
-      <h1>クレーンまるばつロボ</h1>
+      <h1>クレーンロボ コントローラー</h1>
       <div class="status" id="status">未接続</div>
     </header>
 
@@ -274,7 +244,6 @@
       <button class="primary" id="connect">Arduinoに接続</button>
       <button class="danger" id="stop">全停止</button>
       <button class="warn" id="home">初期位置へ戻る</button>
-      <button id="resetGame">ゲームをリセット</button>
     </section>
 
     <section class="layout">
@@ -282,40 +251,58 @@
         <div class="turn">
           <span id="turnText">赤チームのターン</span>
           <span class="badge red" id="turnBadge">赤</span>
+          <button id="nextTurnBtn">交代する</button>
         </div>
 
         <div class="panel">
-          <h2>結果を記録</h2>
-          <div class="board" id="board"></div>
-          <div class="result-actions">
-            <button class="warn" id="missBall">失敗として記録</button>
+          <h2>🎲 先攻決めチンチロ</h2>
+          <div class="chinchiro-area">
+            <div class="chinchiro-message" id="chinchiroMsg">ボタンを押して勝負！</div>
+            
+            <div class="dice-row">
+              <span class="badge red">赤</span>
+              <div class="dice-group" id="redDice">
+                <div class="die red">-</div><div class="die red">-</div><div class="die red">-</div>
+              </div>
+              <div class="yaku-result" id="redYaku"></div>
+            </div>
+
+            <div class="dice-row">
+              <span class="badge blue">青</span>
+              <div class="dice-group" id="blueDice">
+                <div class="die blue">-</div><div class="die blue">-</div><div class="die blue">-</div>
+              </div>
+              <div class="yaku-result" id="blueYaku"></div>
+            </div>
+
+            <button class="primary" id="rollDiceBtn" style="margin-top: 8px;">サイコロを振る</button>
           </div>
         </div>
 
         <div class="panel">
-          <h2>電磁石</h2>
+          <h2>🧲 電磁石</h2>
           <div class="magnet">
-            <button class="primary" id="pickBall">吸着ON</button>
-            <button id="dropBall">吸着OFF</button>
+            <button class="primary" id="pickBall">吸着 ON</button>
+            <button id="dropBall">吸着 OFF</button>
           </div>
         </div>
       </div>
 
       <div>
         <div class="panel">
-          <h2>クレーン操作</h2>
-          <div class="manual crane">
+          <h2>🕹️ クレーン手動操作</h2>
+          <div class="manual">
             <div class="field">
-              <label for="speed">速度</label>
+              <label for="speed">移動速度</label>
               <input id="speed" type="number" value="450" min="50" max="1500" step="50">
             </div>
             <div class="axis">
-              <label>旋回</label>
+              <label>肩 (旋回)</label>
               <button data-axis="J1" data-dir="-1">左回転</button>
               <button data-axis="J1" data-dir="1">右回転</button>
             </div>
             <div class="axis">
-              <label>アーム</label>
+              <label>肘 (伸縮)</label>
               <button data-axis="J2" data-dir="-1">ちぢむ</button>
               <button data-axis="J2" data-dir="1">のびる</button>
             </div>
@@ -328,12 +315,12 @@
         </div>
 
         <div class="panel">
-          <h2>通信ログ</h2>
+          <h2>📝 通信ログ</h2>
           <pre id="log"></pre>
           <details>
             <summary>詳細コマンド</summary>
-            <div class="toolbar">
-              <input id="customCommand" value="STATUS">
+            <div class="toolbar" style="margin-top: 10px; margin-bottom: 0;">
+              <input id="customCommand" value="STATUS" style="width: 150px;">
               <button id="sendCustom">送信</button>
             </div>
           </details>
@@ -343,24 +330,18 @@
   </main>
 
   <script>
-    let port;
-    let writer;
-    let reader;
+    let port, writer, reader;
     let currentPlayer = "red";
-    let gameOver = false;
-    const marks = Array(9).fill("");
 
     const statusEl = document.querySelector("#status");
     const logEl = document.querySelector("#log");
     const speedEl = document.querySelector("#speed");
-    const boardEl = document.querySelector("#board");
     const turnTextEl = document.querySelector("#turnText");
     const turnBadgeEl = document.querySelector("#turnBadge");
-    const missBallEl = document.querySelector("#missBall");
 
     const players = {
-      red: { label: "赤", mark: "○", next: "blue", className: "red" },
-      blue: { label: "青", mark: "×", next: "red", className: "blue" }
+      red: { label: "赤", next: "blue", className: "red" },
+      blue: { label: "青", next: "red", className: "blue" }
     };
 
     function log(message) {
@@ -374,7 +355,6 @@
         log("ロボとつながっていません");
         return false;
       }
-
       await writer.write(`${command}\n`);
       log(`> ${command}`);
       return true;
@@ -387,65 +367,78 @@
       turnBadgeEl.className = `badge ${player.className}`;
     }
 
-    function renderBoard() {
-      boardEl.innerHTML = "";
-      missBallEl.disabled = gameOver;
-      marks.forEach((mark, index) => {
-        const button = document.createElement("button");
-        button.className = "cell";
-        button.textContent = mark || `${index + 1}`;
-        button.disabled = gameOver || Boolean(mark);
-        if (mark === "○") button.classList.add("red");
-        if (mark === "×") button.classList.add("blue");
-        button.addEventListener("click", () => scoreCell(index));
-        boardEl.append(button);
+    document.querySelector("#nextTurnBtn").addEventListener("click", () => {
+      currentPlayer = players[currentPlayer].next;
+      updateTurn();
+    });
+
+    // --- チンチロのロジック ---
+    function rollDice() {
+      return [
+        Math.floor(Math.random() * 6) + 1,
+        Math.floor(Math.random() * 6) + 1,
+        Math.floor(Math.random() * 6) + 1
+      ];
+    }
+
+    function evaluateChinchiro(dice) {
+      const d = [...dice].sort();
+      // アラシ・ピンゾロ
+      if (d[0] === d[1] && d[1] === d[2]) {
+        if (d[0] === 1) return { name: "ピンゾロ", score: 1000 };
+        return { name: `${d[0]}のアラシ`, score: 100 + d[0] };
+      }
+      // シゴロ・ヒフミ
+      if (d[0] === 4 && d[1] === 5 && d[2] === 6) return { name: "シゴロ", score: 90 };
+      if (d[0] === 1 && d[1] === 2 && d[2] === 3) return { name: "ヒフミ", score: -10 };
+      
+      // 目
+      if (d[0] === d[1]) return { name: `${d[2]}の目`, score: d[2] };
+      if (d[1] === d[2]) return { name: `${d[0]}の目`, score: d[0] };
+      
+      // 目なし
+      return { name: "目なし", score: 0 };
+    }
+
+    function renderDice(containerId, diceArray, colorClass) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = "";
+      diceArray.forEach(val => {
+        const die = document.createElement("div");
+        die.className = `die ${colorClass}`;
+        die.textContent = val;
+        container.appendChild(die);
       });
     }
 
-    function winner() {
-      const lines = [
-        [0, 1, 2], [3, 4, 5], [6, 7, 8],
-        [0, 3, 6], [1, 4, 7], [2, 5, 8],
-        [0, 4, 8], [2, 4, 6]
-      ];
-      for (const [a, b, c] of lines) {
-        if (marks[a] && marks[a] === marks[b] && marks[a] === marks[c]) return marks[a];
-      }
-      return marks.every(Boolean) ? "draw" : "";
-    }
+    document.querySelector("#rollDiceBtn").addEventListener("click", () => {
+      const redRoll = rollDice();
+      const blueRoll = rollDice();
+      
+      renderDice("redDice", redRoll, "red");
+      renderDice("blueDice", blueRoll, "blue");
 
-    function finishTurn(message) {
-      if (gameOver) return;
-      const player = players[currentPlayer];
-      const result = winner();
-      if (result === "○" || result === "×") {
-        gameOver = true;
-        renderBoard();
-        turnTextEl.textContent = `${player.label}チームの勝利`;
-        log(`${player.label}チームの勝利`);
-        return;
-      }
-      if (result === "draw") {
-        gameOver = true;
-        renderBoard();
-        turnTextEl.textContent = "引き分け";
-        log("引き分け");
-        return;
-      }
+      const redResult = evaluateChinchiro(redRoll);
+      const blueResult = evaluateChinchiro(blueRoll);
 
-      log(message);
-      currentPlayer = player.next;
+      document.getElementById("redYaku").textContent = redResult.name;
+      document.getElementById("blueYaku").textContent = blueResult.name;
+
+      const msgEl = document.getElementById("chinchiroMsg");
+      if (redResult.score > blueResult.score) {
+        msgEl.textContent = "赤チームの先攻！";
+        currentPlayer = "red";
+      } else if (blueResult.score > redResult.score) {
+        msgEl.textContent = "青チームの先攻！";
+        currentPlayer = "blue";
+      } else {
+        msgEl.textContent = "引き分け！もう一回！";
+        return; // 引き分けの場合はターンを切り替えない
+      }
       updateTurn();
-    }
+    });
 
-    function scoreCell(index) {
-      if (gameOver || marks[index]) return;
-      const player = players[currentPlayer];
-      marks[index] = player.mark;
-      renderBoard();
-      finishTurn(`${player.label}チーム: ${index + 1}番のマスに入った`);
-    }
-
+    // --- シリアル通信のロジック ---
     async function readLoop() {
       const textDecoder = new TextDecoderStream();
       port.readable.pipeTo(textDecoder.writable).catch(() => {});
@@ -477,10 +470,11 @@
       writer = textEncoder.writable.getWriter();
 
       statusEl.textContent = "接続中";
-      log("Arduino Mega 2560に接続しました");
+      log("Arduinoに接続しました");
       readLoop();
     });
 
+    // --- モーター制御イベント ---
     document.querySelectorAll("[data-axis]").forEach((button) => {
       const start = (event) => {
         event.preventDefault();
@@ -503,23 +497,11 @@
     document.querySelector("#home").addEventListener("click", () => sendCommand("HOME"));
     document.querySelector("#pickBall").addEventListener("click", () => sendCommand("MAG 1"));
     document.querySelector("#dropBall").addEventListener("click", () => sendCommand("MAG 0"));
-    document.querySelector("#missBall").addEventListener("click", () => {
-      const player = players[currentPlayer];
-      finishTurn(`${player.label}チーム: 失敗`);
-    });
-    document.querySelector("#resetGame").addEventListener("click", () => {
-      marks.fill("");
-      currentPlayer = "red";
-      gameOver = false;
-      renderBoard();
-      updateTurn();
-      log("ゲームをリセットしました");
-    });
     document.querySelector("#sendCustom").addEventListener("click", () => {
       sendCommand(document.querySelector("#customCommand").value.trim());
     });
 
-    renderBoard();
+    // 初期化
     updateTurn();
   </script>
 </body>
