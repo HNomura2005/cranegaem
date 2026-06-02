@@ -267,71 +267,71 @@
   <main>
     <header>
       <h1>クレーンまるばつロボ</h1>
-      <div class="status" id="status">まだつながっていません</div>
+      <div class="status" id="status">未接続</div>
     </header>
 
     <section class="toolbar">
-      <button class="primary" id="connect">ロボにつなぐ</button>
-      <button class="danger" id="stop">ぜんぶ止める</button>
-      <button class="warn" id="home">おうちにもどる</button>
-      <button id="resetGame">ゲームをはじめから</button>
+      <button class="primary" id="connect">Arduinoに接続</button>
+      <button class="danger" id="stop">全停止</button>
+      <button class="warn" id="home">初期位置へ戻る</button>
+      <button id="resetGame">ゲームをリセット</button>
     </section>
 
     <section class="layout">
       <div>
         <div class="turn">
-          <span id="turnText">赤のばんです</span>
+          <span id="turnText">赤チームのターン</span>
           <span class="badge red" id="turnBadge">赤</span>
         </div>
 
         <div class="panel">
-          <h2>入ったマスを押す</h2>
+          <h2>結果を記録</h2>
           <div class="board" id="board"></div>
           <div class="result-actions">
-            <button class="warn" id="missBall">入らなかった</button>
+            <button class="warn" id="missBall">失敗として記録</button>
           </div>
         </div>
 
         <div class="panel">
-          <h2>クレーンの先</h2>
+          <h2>電磁石</h2>
           <div class="magnet">
-            <button class="primary" id="pickBall">玉をつかむ</button>
-            <button id="dropBall">玉をはなす</button>
+            <button class="primary" id="pickBall">吸着ON</button>
+            <button id="dropBall">吸着OFF</button>
           </div>
         </div>
       </div>
 
       <div>
         <div class="panel">
-          <h2>じぶんでそうさ</h2>
+          <h2>クレーン操作</h2>
           <div class="manual crane">
             <div class="field">
-              <label for="stepSize">うごく量</label>
-              <input id="stepSize" type="number" value="200" min="1" max="10000" step="10">
+              <label for="speed">速度</label>
+              <input id="speed" type="number" value="450" min="50" max="1500" step="50">
             </div>
             <div class="axis">
-              <label>まわる</label>
-              <button data-axis="J1" data-dir="-1">左へ</button>
-              <button data-axis="J1" data-dir="1">右へ</button>
+              <label>旋回</label>
+              <button data-axis="J1" data-dir="-1">左回転</button>
+              <button data-axis="J1" data-dir="1">右回転</button>
             </div>
             <div class="axis">
-              <label>のびる</label>
+              <label>アーム</label>
               <button data-axis="J2" data-dir="-1">ちぢむ</button>
               <button data-axis="J2" data-dir="1">のびる</button>
             </div>
             <div class="axis">
               <label>上下</label>
-              <button data-axis="Z" data-dir="-1">下へ</button>
-              <button data-axis="Z" data-dir="1">上へ</button>
+              <button data-axis="Z" data-dir="-1">下降</button>
+              <button data-axis="Z" data-dir="1">上昇</button>
             </div>
           </div>
         </div>
 
         <div class="panel">
-          <h2>ロボのようす</h2>
+          <h2>通信ログ</h2>
           <pre id="log"></pre>
           <details>
-            <summary>先生用</summary>
+            <summary>詳細コマンド</summary>
             <div class="toolbar">
               <input id="customCommand" value="STATUS">
               <button id="sendCustom">送信</button>
@@ -352,7 +352,7 @@
 
     const statusEl = document.querySelector("#status");
     const logEl = document.querySelector("#log");
-    const stepSizeEl = document.querySelector("#stepSize");
+    const speedEl = document.querySelector("#speed");
     const boardEl = document.querySelector("#board");
     const turnTextEl = document.querySelector("#turnText");
     const turnBadgeEl = document.querySelector("#turnBadge");
@@ -382,7 +382,7 @@
 
     function updateTurn() {
       const player = players[currentPlayer];
-      turnTextEl.textContent = `${player.label}のばんです`;
+      turnTextEl.textContent = `${player.label}チームのターン`;
       turnBadgeEl.textContent = player.label;
       turnBadgeEl.className = `badge ${player.className}`;
     }
@@ -421,15 +421,15 @@
       if (result === "○" || result === "×") {
         gameOver = true;
         renderBoard();
-        turnTextEl.textContent = `${player.label}のかちです`;
-        log(`${player.label}のかちです`);
+        turnTextEl.textContent = `${player.label}チームの勝利`;
+        log(`${player.label}チームの勝利`);
         return;
       }
       if (result === "draw") {
         gameOver = true;
         renderBoard();
-        turnTextEl.textContent = "ひきわけです";
-        log("ひきわけです");
+        turnTextEl.textContent = "引き分け";
+        log("引き分け");
         return;
       }
 
@@ -443,7 +443,7 @@
       const player = players[currentPlayer];
       marks[index] = player.mark;
       renderBoard();
-      finishTurn(`${player.label}が${index + 1}のマスに入りました`);
+      finishTurn(`${player.label}チーム: ${index + 1}番のマスに入った`);
     }
 
     async function readLoop() {
@@ -464,7 +464,7 @@
 
     document.querySelector("#connect").addEventListener("click", async () => {
       if (!("serial" in navigator)) {
-        statusEl.textContent = "このブラウザでは使えません";
+        statusEl.textContent = "Web Serial非対応";
         log("ChromeまたはEdgeで開いてください");
         return;
       }
@@ -476,17 +476,27 @@
       textEncoder.readable.pipeTo(port.writable).catch(() => {});
       writer = textEncoder.writable.getWriter();
 
-      statusEl.textContent = "ロボとつながっています";
-      log("Arduino Mega 2560につながりました");
+      statusEl.textContent = "接続中";
+      log("Arduino Mega 2560に接続しました");
       readLoop();
     });
 
     document.querySelectorAll("[data-axis]").forEach((button) => {
-      button.addEventListener("click", () => {
-        const steps = Math.max(1, Number(stepSizeEl.value) || 1);
-        const signedSteps = steps * Number(button.dataset.dir);
-        sendCommand(`JOG ${button.dataset.axis} ${signedSteps}`);
-      });
+      const start = (event) => {
+        event.preventDefault();
+        const speed = Math.max(50, Number(speedEl.value) || 50);
+        const signedSpeed = speed * Number(button.dataset.dir);
+        sendCommand(`DRIVE ${button.dataset.axis} ${signedSpeed}`);
+      };
+      const stop = (event) => {
+        event.preventDefault();
+        sendCommand(`DRIVE ${button.dataset.axis} 0`);
+      };
+
+      button.addEventListener("pointerdown", start);
+      button.addEventListener("pointerup", stop);
+      button.addEventListener("pointercancel", stop);
+      button.addEventListener("pointerleave", stop);
     });
 
     document.querySelector("#stop").addEventListener("click", () => sendCommand("STOP"));
@@ -495,7 +505,7 @@
     document.querySelector("#dropBall").addEventListener("click", () => sendCommand("MAG 0"));
     document.querySelector("#missBall").addEventListener("click", () => {
       const player = players[currentPlayer];
-      finishTurn(`${player.label}は入りませんでした`);
+      finishTurn(`${player.label}チーム: 失敗`);
     });
     document.querySelector("#resetGame").addEventListener("click", () => {
       marks.fill("");
@@ -503,7 +513,7 @@
       gameOver = false;
       renderBoard();
       updateTurn();
-      log("ゲームをはじめからにしました");
+      log("ゲームをリセットしました");
     });
     document.querySelector("#sendCustom").addEventListener("click", () => {
       sendCommand(document.querySelector("#customCommand").value.trim());
