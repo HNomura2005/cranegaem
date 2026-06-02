@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ピンポン玉ならべロボ</title>
+  <title>クレーンまるばつロボ</title>
   <style>
     :root {
       color-scheme: light;
@@ -218,6 +218,18 @@
       gap: 8px;
     }
 
+    .crane {
+      display: grid;
+      gap: 10px;
+    }
+
+    .result-actions {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
     details {
       margin-top: 8px;
     }
@@ -254,7 +266,7 @@
 <body>
   <main>
     <header>
-      <h1>ピンポン玉ならべロボ</h1>
+      <h1>クレーンまるばつロボ</h1>
       <div class="status" id="status">まだつながっていません</div>
     </header>
 
@@ -273,12 +285,15 @@
         </div>
 
         <div class="panel">
-          <h2>入れたいマスをえらぶ</h2>
+          <h2>入ったマスを押す</h2>
           <div class="board" id="board"></div>
+          <div class="result-actions">
+            <button class="warn" id="missBall">入らなかった</button>
+          </div>
         </div>
 
         <div class="panel">
-          <h2>玉をつかむ・はなす</h2>
+          <h2>クレーンの先</h2>
           <div class="magnet">
             <button class="primary" id="pickBall">玉をつかむ</button>
             <button id="dropBall">玉をはなす</button>
@@ -288,21 +303,21 @@
 
       <div>
         <div class="panel">
-          <h2>ちょっとだけ動かす</h2>
-          <div class="manual">
+          <h2>じぶんでそうさ</h2>
+          <div class="manual crane">
             <div class="field">
               <label for="stepSize">うごく量</label>
               <input id="stepSize" type="number" value="200" min="1" max="10000" step="10">
             </div>
             <div class="axis">
-              <label>うで1</label>
+              <label>まわる</label>
               <button data-axis="J1" data-dir="-1">左へ</button>
               <button data-axis="J1" data-dir="1">右へ</button>
             </div>
             <div class="axis">
-              <label>うで2</label>
-              <button data-axis="J2" data-dir="-1">左へ</button>
-              <button data-axis="J2" data-dir="1">右へ</button>
+              <label>のびる</label>
+              <button data-axis="J2" data-dir="-1">ちぢむ</button>
+              <button data-axis="J2" data-dir="1">のびる</button>
             </div>
             <div class="axis">
               <label>上下</label>
@@ -332,6 +347,7 @@
     let writer;
     let reader;
     let currentPlayer = "red";
+    let gameOver = false;
     const marks = Array(9).fill("");
 
     const statusEl = document.querySelector("#status");
@@ -340,6 +356,7 @@
     const boardEl = document.querySelector("#board");
     const turnTextEl = document.querySelector("#turnText");
     const turnBadgeEl = document.querySelector("#turnBadge");
+    const missBallEl = document.querySelector("#missBall");
 
     const players = {
       red: { label: "赤", mark: "○", next: "blue", className: "red" },
@@ -372,14 +389,15 @@
 
     function renderBoard() {
       boardEl.innerHTML = "";
+      missBallEl.disabled = gameOver;
       marks.forEach((mark, index) => {
         const button = document.createElement("button");
         button.className = "cell";
         button.textContent = mark || `${index + 1}`;
-        button.disabled = Boolean(mark);
+        button.disabled = gameOver || Boolean(mark);
         if (mark === "○") button.classList.add("red");
         if (mark === "×") button.classList.add("blue");
-        button.addEventListener("click", () => placeBall(index));
+        button.addEventListener("click", () => scoreCell(index));
         boardEl.append(button);
       });
     }
@@ -396,28 +414,36 @@
       return marks.every(Boolean) ? "draw" : "";
     }
 
-    async function placeBall(index) {
+    function finishTurn(message) {
+      if (gameOver) return;
       const player = players[currentPlayer];
-      const ok = await sendCommand(`PLACE ${index + 1}`);
-      if (!ok) return;
-
-      marks[index] = player.mark;
-      renderBoard();
-
       const result = winner();
       if (result === "○" || result === "×") {
+        gameOver = true;
+        renderBoard();
         turnTextEl.textContent = `${player.label}のかちです`;
         log(`${player.label}のかちです`);
         return;
       }
       if (result === "draw") {
+        gameOver = true;
+        renderBoard();
         turnTextEl.textContent = "ひきわけです";
         log("ひきわけです");
         return;
       }
 
+      log(message);
       currentPlayer = player.next;
       updateTurn();
+    }
+
+    function scoreCell(index) {
+      if (gameOver || marks[index]) return;
+      const player = players[currentPlayer];
+      marks[index] = player.mark;
+      renderBoard();
+      finishTurn(`${player.label}が${index + 1}のマスに入りました`);
     }
 
     async function readLoop() {
@@ -465,11 +491,16 @@
 
     document.querySelector("#stop").addEventListener("click", () => sendCommand("STOP"));
     document.querySelector("#home").addEventListener("click", () => sendCommand("HOME"));
-    document.querySelector("#pickBall").addEventListener("click", () => sendCommand("PICK"));
+    document.querySelector("#pickBall").addEventListener("click", () => sendCommand("MAG 1"));
     document.querySelector("#dropBall").addEventListener("click", () => sendCommand("MAG 0"));
+    document.querySelector("#missBall").addEventListener("click", () => {
+      const player = players[currentPlayer];
+      finishTurn(`${player.label}は入りませんでした`);
+    });
     document.querySelector("#resetGame").addEventListener("click", () => {
       marks.fill("");
       currentPlayer = "red";
+      gameOver = false;
       renderBoard();
       updateTurn();
       log("ゲームをはじめからにしました");

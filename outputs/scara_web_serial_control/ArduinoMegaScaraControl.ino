@@ -20,23 +20,6 @@ constexpr float ACCELERATION = 600.0;
 constexpr long HOME_J1 = 0;
 constexpr long HOME_J2 = 0;
 constexpr long SAFE_Z = 0;
-constexpr long DROP_Z = -450;
-constexpr long PICK_J1 = -1200;
-constexpr long PICK_J2 = 800;
-constexpr long PICK_Z = -450;
-
-// Tune these nine positions after measuring the real 3x3 board.
-constexpr long CELL_J1[9] = {
-  -900, 0, 900,
-  -900, 0, 900,
-  -900, 0, 900
-};
-
-constexpr long CELL_J2[9] = {
-  1000, 1000, 1000,
-  0, 0, 0,
-  -1000, -1000, -1000
-};
 
 AccelStepper arm1(AccelStepper::DRIVER, J1_STEP_PIN, J1_DIR_PIN);
 AccelStepper arm2(AccelStepper::DRIVER, J2_STEP_PIN, J2_DIR_PIN);
@@ -44,6 +27,8 @@ AccelStepper upDown(AccelStepper::DRIVER, Z_STEP_PIN, Z_DIR_PIN);
 
 String line;
 bool stopped = false;
+
+void stopAll();
 
 AccelStepper *axisFromName(const String &name) {
   if (name == "J1") return &arm1;
@@ -124,32 +109,6 @@ void home() {
   moveTo(HOME_J1, HOME_J2, SAFE_Z);
 }
 
-void pickBall() {
-  stopped = false;
-  moveTo(arm1.currentPosition(), arm2.currentPosition(), SAFE_Z);
-  moveTo(PICK_J1, PICK_J2, SAFE_Z);
-  moveTo(PICK_J1, PICK_J2, PICK_Z);
-  digitalWrite(MAGNET_PIN, HIGH);
-  delay(250);
-  moveTo(PICK_J1, PICK_J2, SAFE_Z);
-}
-
-void placeBall(uint8_t cellNumber) {
-  if (cellNumber < 1 || cellNumber > 9) {
-    Serial.println("ERR cell must be 1-9");
-    return;
-  }
-
-  uint8_t index = cellNumber - 1;
-  stopped = false;
-  moveTo(arm1.currentPosition(), arm2.currentPosition(), SAFE_Z);
-  moveTo(CELL_J1[index], CELL_J2[index], SAFE_Z);
-  moveTo(CELL_J1[index], CELL_J2[index], DROP_Z);
-  digitalWrite(MAGNET_PIN, LOW);
-  delay(250);
-  moveTo(CELL_J1[index], CELL_J2[index], SAFE_Z);
-}
-
 void zeroAll() {
   arm1.setCurrentPosition(0);
   arm2.setCurrentPosition(0);
@@ -189,19 +148,6 @@ void handleCommand(String commandLine) {
     stopped = false;
     axis->move(steps);
     Serial.println("OK jog");
-    return;
-  }
-
-  if (command == "PICK") {
-    pickBall();
-    Serial.println("OK pick");
-    return;
-  }
-
-  if (command == "PLACE") {
-    uint8_t cellNumber = commandLine.toInt();
-    placeBall(cellNumber);
-    Serial.println("OK place");
     return;
   }
 
