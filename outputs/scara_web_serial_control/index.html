@@ -93,12 +93,17 @@
       padding: 0 16px;
     }
 
-    button:hover {
+    button:hover:not(:disabled) {
       background: #e1ebf3;
     }
 
-    button:active {
+    button:active:not(:disabled) {
       transform: translateY(1px);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
 
     button.primary {
@@ -158,25 +163,47 @@
     }
     .dice-group {
       display: flex;
-      gap: 6px;
+      gap: 8px;
     }
+    
+    /* リアルなサイコロのスタイル */
     .die {
       display: grid;
-      place-items: center;
-      width: 36px;
-      height: 36px;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      gap: 2px;
+      width: 42px;
+      height: 42px;
+      padding: 4px;
+      box-sizing: border-box;
       border: 2px solid #8fa3b8;
-      border-radius: 6px;
+      border-radius: 8px;
       background: #fbfcfd;
-      font-size: 20px;
-      font-weight: 900;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-    .die.red { color: #d92d20; border-color: #d92d20; background: #fff1f0;}
-    .die.blue { color: #2563eb; border-color: #2563eb; background: #eff6ff;}
+    .die.red { border-color: #d92d20; background: #fff1f0;}
+    .die.blue { border-color: #2563eb; background: #eff6ff;}
+    
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #17202a;
+      justify-self: center;
+      align-self: center;
+    }
+    .dot.red-dot {
+      background: #d92d20;
+      width: 10px;
+      height: 10px;
+    }
+
     .yaku-result {
       min-width: 100px;
-      text-align: right;
+      text-align: left;
       color: #4a5568;
+      font-weight: 900;
+      font-size: 18px;
     }
     .chinchiro-message {
       font-size: 18px;
@@ -186,6 +213,17 @@
       background: #fff2cc;
       border-radius: 8px;
       margin-bottom: 8px;
+      transition: all 0.2s;
+    }
+
+    .duration-control {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 10px;
+      font-size: 14px;
+      font-weight: bold;
     }
 
     .manual { display: grid; gap: 10px; }
@@ -196,7 +234,7 @@
       align-items: center;
     }
     label { font-weight: 750; }
-    input {
+    input[type="number"], input[type="text"] {
       width: 96px;
       min-height: 40px;
       box-sizing: border-box;
@@ -255,14 +293,14 @@
         </div>
 
         <div class="panel">
-          <h2>🎲 先攻決めチンチロ</h2>
+          <h2>先攻決めチンチロ</h2>
           <div class="chinchiro-area">
             <div class="chinchiro-message" id="chinchiroMsg">ボタンを押して勝負！</div>
             
             <div class="dice-row">
               <span class="badge red">赤</span>
               <div class="dice-group" id="redDice">
-                <div class="die red">-</div><div class="die red">-</div><div class="die red">-</div>
+                <div class="die red"></div><div class="die red"></div><div class="die red"></div>
               </div>
               <div class="yaku-result" id="redYaku"></div>
             </div>
@@ -270,17 +308,23 @@
             <div class="dice-row">
               <span class="badge blue">青</span>
               <div class="dice-group" id="blueDice">
-                <div class="die blue">-</div><div class="die blue">-</div><div class="die blue">-</div>
+                <div class="die blue"></div><div class="die blue"></div><div class="die blue"></div>
               </div>
               <div class="yaku-result" id="blueYaku"></div>
             </div>
 
-            <button class="primary" id="rollDiceBtn" style="margin-top: 8px;">サイコロを振る</button>
+            <button class="primary" id="rollDiceBtn" style="margin-top: 12px; width: 100%;">サイコロを振る！</button>
+            
+            <div class="duration-control">
+              <label for="durationSlider">演出時間:</label>
+              <input type="range" id="durationSlider" min="0.5" max="5.0" step="0.5" value="1.5">
+              <span id="durationVal">1.5秒</span>
+            </div>
           </div>
         </div>
 
         <div class="panel">
-          <h2>🧲 電磁石</h2>
+          <h2>電磁石</h2>
           <div class="magnet">
             <button class="primary" id="pickBall">吸着 ON</button>
             <button id="dropBall">吸着 OFF</button>
@@ -290,7 +334,7 @@
 
       <div>
         <div class="panel">
-          <h2>🕹️ クレーン手動操作</h2>
+          <h2>クレーン手動操作</h2>
           <div class="manual">
             <div class="field">
               <label for="speed">移動速度</label>
@@ -315,12 +359,12 @@
         </div>
 
         <div class="panel">
-          <h2>📝 通信ログ</h2>
+          <h2>通信ログ</h2>
           <pre id="log"></pre>
           <details>
             <summary>詳細コマンド</summary>
             <div class="toolbar" style="margin-top: 10px; margin-bottom: 0;">
-              <input id="customCommand" value="STATUS" style="width: 150px;">
+              <input id="customCommand" type="text" value="STATUS" style="width: 150px;">
               <button id="sendCustom">送信</button>
             </div>
           </details>
@@ -372,6 +416,13 @@
       updateTurn();
     });
 
+    // --- 演出時間スライダーの連動 ---
+    const durationSlider = document.getElementById("durationSlider");
+    const durationVal = document.getElementById("durationVal");
+    durationSlider.addEventListener("input", (e) => {
+      durationVal.textContent = `${e.target.value}秒`;
+    });
+
     // --- チンチロのロジック ---
     function rollDice() {
       return [
@@ -385,12 +436,12 @@
       const d = [...dice].sort();
       // アラシ・ピンゾロ
       if (d[0] === d[1] && d[1] === d[2]) {
-        if (d[0] === 1) return { name: "ピンゾロ", score: 1000 };
-        return { name: `${d[0]}のアラシ`, score: 100 + d[0] };
+        if (d[0] === 1) return { name: "ピンゾロ！", score: 1000 };
+        return { name: `${d[0]}のアラシ！`, score: 100 + d[0] };
       }
       // シゴロ・ヒフミ
-      if (d[0] === 4 && d[1] === 5 && d[2] === 6) return { name: "シゴロ", score: 90 };
-      if (d[0] === 1 && d[1] === 2 && d[2] === 3) return { name: "ヒフミ", score: -10 };
+      if (d[0] === 4 && d[1] === 5 && d[2] === 6) return { name: "シゴロ！", score: 90 };
+      if (d[0] === 1 && d[1] === 2 && d[2] === 3) return { name: "ヒフミ...", score: -10 };
       
       // 目
       if (d[0] === d[1]) return { name: `${d[2]}の目`, score: d[2] };
@@ -400,42 +451,119 @@
       return { name: "目なし", score: 0 };
     }
 
+    // サイコロの目をHTML(ドット)に変換する関数
+    function getDieDotsHTML(value) {
+      // 3x3グリッド (0〜8のインデックス)
+      const dotPatterns = {
+        1: [4],
+        2: [0, 8],
+        3: [0, 4, 8],
+        4: [0, 2, 6, 8],
+        5: [0, 2, 4, 6, 8],
+        6: [0, 2, 3, 5, 6, 8]
+      };
+      
+      // もし値がない(初期状態など)場合は空のグリッドを返す
+      if (!value) return Array(9).fill('<div></div>').join('');
+
+      const activeDots = dotPatterns[value];
+      let html = "";
+      for (let i = 0; i < 9; i++) {
+        if (activeDots.includes(i)) {
+          // 1の目は特別に赤くて大きなドットにする
+          const dotClass = (value === 1) ? "dot red-dot" : "dot";
+          html += `<div class="${dotClass}"></div>`;
+        } else {
+          html += `<div></div>`;
+        }
+      }
+      return html;
+    }
+
     function renderDice(containerId, diceArray, colorClass) {
       const container = document.getElementById(containerId);
       container.innerHTML = "";
       diceArray.forEach(val => {
         const die = document.createElement("div");
         die.className = `die ${colorClass}`;
-        die.textContent = val;
+        die.innerHTML = getDieDotsHTML(val);
         container.appendChild(die);
       });
     }
 
+    // サイコロをシャッフルするアニメーション関数
+    function animateDice(containerId, colorClass, durationMs, onComplete) {
+      const startTime = Date.now();
+      const interval = setInterval(() => {
+        renderDice(containerId, rollDice(), colorClass); // ランダム描画
+        
+        if (Date.now() - startTime >= durationMs) {
+          clearInterval(interval);
+          const finalRoll = rollDice();
+          renderDice(containerId, finalRoll, colorClass);
+          onComplete(finalRoll);
+        }
+      }, 50); // 50ミリ秒ごとに目が切り替わる (高速シャッフル)
+    }
+
+    // 初期表示用に空のサイコロを描画
+    renderDice("redDice", [null, null, null], "red");
+    renderDice("blueDice", [null, null, null], "blue");
+
     document.querySelector("#rollDiceBtn").addEventListener("click", () => {
-      const redRoll = rollDice();
-      const blueRoll = rollDice();
-      
-      renderDice("redDice", redRoll, "red");
-      renderDice("blueDice", blueRoll, "blue");
-
-      const redResult = evaluateChinchiro(redRoll);
-      const blueResult = evaluateChinchiro(blueRoll);
-
-      document.getElementById("redYaku").textContent = redResult.name;
-      document.getElementById("blueYaku").textContent = blueResult.name;
-
+      const btn = document.querySelector("#rollDiceBtn");
+      const slider = document.querySelector("#durationSlider");
       const msgEl = document.getElementById("chinchiroMsg");
-      if (redResult.score > blueResult.score) {
-        msgEl.textContent = "赤チームの先攻！";
-        currentPlayer = "red";
-      } else if (blueResult.score > redResult.score) {
-        msgEl.textContent = "青チームの先攻！";
-        currentPlayer = "blue";
-      } else {
-        msgEl.textContent = "引き分け！もう一回！";
-        return; // 引き分けの場合はターンを切り替えない
-      }
-      updateTurn();
+      
+      // スライダーから演出時間（ミリ秒）を取得
+      const durationMs = parseFloat(slider.value) * 1000;
+
+      // 演出中は操作をロック
+      btn.disabled = true;
+      slider.disabled = true;
+      document.getElementById("redYaku").textContent = "";
+      document.getElementById("blueYaku").textContent = "";
+      
+      // シャッフル前の状態に戻す
+      renderDice("redDice", [null, null, null], "red");
+      renderDice("blueDice", [null, null, null], "blue");
+
+      msgEl.textContent = "赤チームが振っています...ざわ...ざわ...";
+
+      // 1. 赤チームのアニメーション
+      animateDice("redDice", "red", durationMs, (redRoll) => {
+        const redResult = evaluateChinchiro(redRoll);
+        document.getElementById("redYaku").textContent = redResult.name;
+        
+        setTimeout(() => {
+          msgEl.textContent = "青チームが振っています...ざわ...ざわ...";
+          
+          // 2. 青チームのアニメーション
+          animateDice("blueDice", "blue", durationMs, (blueRoll) => {
+            const blueResult = evaluateChinchiro(blueRoll);
+            document.getElementById("blueYaku").textContent = blueResult.name;
+            
+            // 3. 勝敗判定
+            setTimeout(() => {
+              if (redResult.score > blueResult.score) {
+                msgEl.textContent = "赤チームの先攻！";
+                currentPlayer = "red";
+              } else if (blueResult.score > redResult.score) {
+                msgEl.textContent = "青チームの先攻！";
+                currentPlayer = "blue";
+              } else {
+                msgEl.textContent = "引き分け！もう一回勝負！";
+              }
+              updateTurn();
+              
+              // 操作ロック解除
+              btn.disabled = false;
+              slider.disabled = false;
+            }, 600);
+            
+          });
+        }, 800); // ターン間のタメ
+      });
     });
 
     // --- シリアル通信のロジック ---
