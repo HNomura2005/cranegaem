@@ -287,8 +287,8 @@
     <section class="layout">
       <div>
         <div class="turn">
-          <span id="turnText">赤チームのターン</span>
-          <span class="badge red" id="turnBadge">赤</span>
+          <span id="turnText">オレンジチームのターン</span>
+          <span class="badge red" id="turnBadge">オレンジ</span>
           <button id="nextTurnBtn">交代する</button>
         </div>
 
@@ -298,7 +298,7 @@
             <div class="chinchiro-message" id="chinchiroMsg">ボタンを押して勝負！</div>
             
             <div class="dice-row">
-              <span class="badge red">赤</span>
+              <span class="badge red">オレンジ</span>
               <div class="dice-group" id="redDice">
                 <div class="die red"></div><div class="die red"></div><div class="die red"></div>
               </div>
@@ -306,7 +306,7 @@
             </div>
 
             <div class="dice-row">
-              <span class="badge blue">青</span>
+              <span class="badge blue">白</span>
               <div class="dice-group" id="blueDice">
                 <div class="die blue"></div><div class="die blue"></div><div class="die blue"></div>
               </div>
@@ -384,8 +384,8 @@
     const turnBadgeEl = document.querySelector("#turnBadge");
 
     const players = {
-      red: { label: "赤", next: "blue", className: "red" },
-      blue: { label: "青", next: "red", className: "blue" }
+      red: { label: "オレンジ", next: "blue", className: "red" },
+      blue: { label: "白", next: "red", className: "blue" }
     };
 
     function log(message) {
@@ -528,17 +528,17 @@
       renderDice("redDice", [null, null, null], "red");
       renderDice("blueDice", [null, null, null], "blue");
 
-      msgEl.textContent = "赤チームが振っています...ざわ...ざわ...";
+      msgEl.textContent = "オレンジチームが振っています...ざわ...ざわ...";
 
-      // 1. 赤チームのアニメーション
+      // 1. オレンジチームのアニメーション
       animateDice("redDice", "red", durationMs, (redRoll) => {
         const redResult = evaluateChinchiro(redRoll);
         document.getElementById("redYaku").textContent = redResult.name;
         
         setTimeout(() => {
-          msgEl.textContent = "青チームが振っています...ざわ...ざわ...";
+          msgEl.textContent = "白チームが振っています...ざわ...ざわ...";
           
-          // 2. 青チームのアニメーション
+          // 2. 白チームのアニメーション
           animateDice("blueDice", "blue", durationMs, (blueRoll) => {
             const blueResult = evaluateChinchiro(blueRoll);
             document.getElementById("blueYaku").textContent = blueResult.name;
@@ -546,10 +546,10 @@
             // 3. 勝敗判定
             setTimeout(() => {
               if (redResult.score > blueResult.score) {
-                msgEl.textContent = "赤チームの先攻！";
+                msgEl.textContent = "オレンジチームの先攻！";
                 currentPlayer = "red";
               } else if (blueResult.score > redResult.score) {
-                msgEl.textContent = "青チームの先攻！";
+                msgEl.textContent = "白チームの先攻！";
                 currentPlayer = "blue";
               } else {
                 msgEl.textContent = "引き分け！もう一回勝負！";
