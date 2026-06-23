@@ -651,6 +651,124 @@
       sendCommand(document.querySelector("#customCommand").value.trim());
     });
 
+// ==========================================
+    // 🎮 キーボード＆ゲームパッド操作
+    // ==========================================
+    const activeKeys = new Set();
+    let currentZ = parseInt(document.querySelector("#zSlider").value) || 90;
+    let lastZSent = currentZ;
+
+    // --- キーボード処理 ---
+    window.addEventListener('keydown', (e) => {
+      if (e.repeat) return; // 押しっぱなし連打を防止
+      const key = e.key.toLowerCase();
+      activeKeys.add(key);
+
+      const speed = Math.max(50, Number(speedEl.value) || 50);
+
+      // 移動: W A S D
+      if (key === 'a') sendCommand(`DRIVE J1 ${-speed}`);
+      if (key === 'd') sendCommand(`DRIVE J1 ${speed}`);
+      if (key === 'w') sendCommand(`DRIVE J2 ${speed}`);
+      if (key === 's') sendCommand(`DRIVE J2 ${-speed}`);
+
+      // アーム開閉: Space(つかむ), Shift(はなす)
+      if (key === ' ') {
+        e.preventDefault(); // 画面が下にスクロールするのを防ぐ
+        sendCommand("ARM 0"); // ※0度は実機に合わせて調整してください
+      }
+      if (e.key === 'Shift') {
+        sendCommand("ARM 90"); // ※90度は実機に合わせて調整してください
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      const key = e.key.toLowerCase();
+      activeKeys.delete(key);
+
+      // キーを離したらモーター停止
+      if (key === 'a' || key === 'd') sendCommand(`DRIVE J1 0`);
+      if (key === 'w' || key === 's') sendCommand(`DRIVE J2 0`);
+    });
+
+    // Z軸（サーボ）は長押しで滑らかに動かすためのループ処理
+    setInterval(() => {
+      let zChanged = false;
+      if (activeKeys.has('q')) { // 上昇
+        currentZ = Math.max(0, currentZ - 2);
+        zChanged = true;
+      }
+      if (activeKeys.has('e')) { // 下降
+        currentZ = Math.min(180, currentZ + 2);
+        zChanged = true;
+      }
+
+      if (zChanged && Math.round(currentZ) !== lastZSent) {
+        lastZSent = Math.round(currentZ);
+        document.querySelector("#zSlider").value = lastZSent;
+        document.querySelector("#zVal").textContent = `${Math.round((lastZSent / 180) * 100)}%`;
+        sendCommand(`Z ${lastZSent}`);
+      }
+    }, 50);
+
+    // --- ゲームパッド処理 ---
+    let gamepadIndex = null;
+    let lastJ1Speed = 0, lastJ2Speed = 0;
+    let lastBtnA = false, lastBtnB = false;
+
+    window.addEventListener("gamepadconnected", (e) => {
+      gamepadIndex = e.gamepad.index;
+      log(`🎮 コントローラー接続: ${e.gamepad.id}`);
+      pollGamepad();
+    });
+
+    window.addEventListener("gamepaddisconnected", (e) => {
+      if (gamepadIndex === e.gamepad.index) gamepadIndex = null;
+      log("🎮 コントローラーが切断されました");
+    });
+
+    function pollGamepad() {
+      if (gamepadIndex === null) return;
+      const pad = navigator.getGamepads()[gamepadIndex];
+      if (pad) {
+        const speed = Math.max(50, Number(speedEl.value) || 50);
+        const deadzone = 0.2; // スティックの遊び（触ってない時の誤作動防止）
+
+        // 左スティック (J1/J2)
+        let j1Speed = Math.abs(pad.axes[0]) > deadzone ? Math.round(pad.axes[0] * speed) : 0;
+        let j2Speed = Math.abs(pad.axes[1]) > deadzone ? Math.round(-pad.axes[1] * speed) : 0;
+
+        if (j1Speed !== lastJ1Speed) { sendCommand(`DRIVE J1 ${j1Speed}`); lastJ1Speed = j1Speed; }
+        if (j2Speed !== lastJ2Speed) { sendCommand(`DRIVE J2 ${j2Speed}`); lastJ2Speed = j2Speed; }
+
+        // 右スティックの上下 (Z軸)
+        let zAxis = pad.axes[3]; 
+        if (Math.abs(zAxis) > deadzone) {
+          // スティックの倒し具合で昇降スピードを変える
+          currentZ = Math.max(0, Math.min(180, currentZ + zAxis * 3));
+          if (Math.round(currentZ) !== lastZSent) {
+            lastZSent = Math.round(currentZ);
+            document.querySelector("#zSlider").value = lastZSent;
+            document.querySelector("#zVal").textContent = `${Math.round((lastZSent / 180) * 100)}%`;
+            sendCommand(`Z ${lastZSent}`);
+          }
+        }
+
+        // ボタン (Aボタン[0]:つかむ, Bボタン[1]:はなす)
+        const btnA = pad.buttons[0].pressed;
+        const btnB = pad.buttons[1].pressed;
+        if (btnA && !lastBtnA) sendCommand("ARM 0");
+        if (btnB && !lastBtnB) sendCommand("ARM 90");
+        lastBtnA = btnA;
+        lastBtnB = btnB;
+      }
+      requestAnimationFrame(pollGamepad);
+    }
+    // ==========================================
+
+
+    // 初期化
+    updateTurn();
     // 初期化
     updateTurn();
   </script>
