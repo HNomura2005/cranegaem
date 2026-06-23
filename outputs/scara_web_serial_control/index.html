@@ -91,6 +91,10 @@
       font-weight: 750;
       cursor: pointer;
       padding: 0 16px;
+      /* スマホ等の長押しでメニューや選択が出るのを防ぐ（クレーン操作用） */
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
     }
 
     button:hover:not(:disabled) {
@@ -360,9 +364,9 @@
               <button data-axis="J2" data-dir="1">のびる</button>
             </div>
             <div class="axis-slider">
-              <label>上下 (Z軸)</label>
+              <label>上下高さ</label>
               <input type="range" id="zSlider" min="0" max="180" value="90">
-              <span id="zVal" style="font-weight: bold; text-align: center;">90°</span>
+              <span id="zVal" style="font-weight: bold; text-align: center;">50%</span>
             </div>
           </div>
         </div>
@@ -594,32 +598,38 @@
 
     // --- ステッピングモーター（J1, J2）の制御 ---
     document.querySelectorAll("[data-axis]").forEach((button) => {
+      // ボタンを押したときに動くコマンドを送る
       const start = (event) => {
-        event.preventDefault();
+        event.preventDefault(); // スクロール等の標準動作をブロック
         const speed = Math.max(50, Number(speedEl.value) || 50);
         const signedSpeed = speed * Number(button.dataset.dir);
         sendCommand(`DRIVE ${button.dataset.axis} ${signedSpeed}`);
       };
+      
+      // ボタンから指を離したとき（またはカーソルが外れたとき）に止まるコマンドを送る
       const stop = (event) => {
         event.preventDefault();
         sendCommand(`DRIVE ${button.dataset.axis} 0`);
       };
 
+      // 各種操作イベントを登録（PC・スマホ両対応）
       button.addEventListener("pointerdown", start);
       button.addEventListener("pointerup", stop);
       button.addEventListener("pointercancel", stop);
       button.addEventListener("pointerleave", stop);
     });
 
-    // --- Z軸サーボの制御 ---
+    // --- Z軸サーボの制御（高さ 0〜100% 表示） ---
     const zSlider = document.querySelector("#zSlider");
     const zVal = document.querySelector("#zVal");
     
-    // スライダーを動かしている間は表示の角度だけ更新する
+    // スライダーを動かしている間は「高さの割合（％）」として計算して表示する
     zSlider.addEventListener("input", (e) => {
-      zVal.textContent = `${e.target.value}°`;
+      const percent = Math.round((e.target.value / 180) * 100);
+      zVal.textContent = `${percent}%`;
     });
-    // スライダーから指を離した瞬間に一度だけコマンドを送る
+    
+    // スライダーから指を離した瞬間に、裏側ではサーボ用の角度(0〜180)を送る
     zSlider.addEventListener("change", (e) => {
       sendCommand(`Z ${e.target.value}`);
     });
@@ -628,12 +638,12 @@
     document.querySelector("#stop").addEventListener("click", () => sendCommand("STOP"));
     document.querySelector("#home").addEventListener("click", () => {
       sendCommand("HOME");
-      // UIのZ軸表示も安全な角度(90)に戻す
+      // UIのZ軸表示も安全な位置(50%)に戻す
       zSlider.value = 90;
-      zVal.textContent = "90°";
+      zVal.textContent = "50%";
     });
     
-    // アームのサーボ角度送信（※機構に合わせて角度の数値 0 や 90 は調整してください）
+    // アームのサーボ角度送信（※機構に合わせて角度の数値 0 や 90 は適宜調整してください）
     document.querySelector("#closeArm").addEventListener("click", () => sendCommand("ARM 0"));
     document.querySelector("#openArm").addEventListener("click", () => sendCommand("ARM 90"));
     
