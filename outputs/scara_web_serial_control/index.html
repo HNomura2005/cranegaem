@@ -269,7 +269,7 @@
         </div>
         
         <div class="panel">
-          <h2>🎮 キーボード＆ゲームパッド操作</h2>
+          <h2>キーボード＆ゲームパッド操作</h2>
           <div class="key-guide">
             <div class="guide-item">
               <div>
@@ -287,13 +287,13 @@
               <div>
                 <span class="key-badge">Space</span>
               </div>
-              <span class="guide-desc">つかむ / Aボタン(×)</span>
+              <span class="guide-desc">つかむ</span>
             </div>
             <div class="guide-item">
               <div>
                 <span class="key-badge">Shift</span>
               </div>
-              <span class="guide-desc">はなす / Bボタン(〇)</span>
+              <span class="guide-desc">はなす</span>
             </div>
           </div>
         </div>
@@ -301,7 +301,7 @@
 
       <div>
         <div class="panel">
-          <h2>📡 レーダー（現在位置）</h2>
+          <h2>レーダー（現在位置）</h2>
           <div class="radar-container">
             <canvas id="radarCanvas" width="300" height="300"></canvas>
           </div>
@@ -539,7 +539,7 @@
     });
 
     // ==========================================
-    // 🎮 キーボード＆ゲームパッド操作ロジック
+    // キーボード＆ゲームパッド操作ロジック
     // ==========================================
     const activeKeys = new Set();
     let currentZ = parseInt(zSlider.value) || 90;
@@ -605,13 +605,13 @@
 
     window.addEventListener("gamepadconnected", (e) => {
       gamepadIndex = e.gamepad.index;
-      log(`🎮 コントローラー接続: ${e.gamepad.id}`);
+      log(`コントローラー接続: ${e.gamepad.id}`);
       pollGamepad();
     });
 
     window.addEventListener("gamepaddisconnected", (e) => {
       if (gamepadIndex === e.gamepad.index) gamepadIndex = null;
-      log("🎮 コントローラーが切断されました");
+      log("コントローラーが切断されました");
     });
 
     function pollGamepad() {
