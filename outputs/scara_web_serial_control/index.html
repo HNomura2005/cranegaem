@@ -262,7 +262,7 @@
 
       <div>
         <div class="panel">
-          <h2>🎮 キーボード＆ゲームパッド操作</h2>
+          <h2>キーボード＆ゲームパッド操作</h2>
           <div class="key-guide">
             <div class="guide-item">
               <div>
@@ -321,7 +321,6 @@
 
     async function sendCommand(command) {
       if (!writer) {
-        // UIテスト用にログだけ出す場合は以下のコメントを外す（ロボットなしで遊ぶ用）
         // log(`[未接続] ${command}`);
         return false;
       }
@@ -423,7 +422,7 @@
     });
 
     // ==========================================
-    // 🎮 キーボード＆ゲームパッド操作ロジック
+    //  キーボード＆ゲームパッド操作ロジック
     // ==========================================
     const activeKeys = new Set();
     let currentZ = parseInt(zSlider.value) || 90;
