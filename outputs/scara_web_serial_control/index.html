@@ -170,7 +170,6 @@
       gap: 8px;
     }
     
-    /* リアルなサイコロのスタイル */
     .die {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -277,6 +276,37 @@
       white-space: pre-wrap;
     }
 
+    /* 操作ガイド用のスタイル */
+    .key-guide {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 8px;
+    }
+    .guide-item {
+      display: flex;
+      align-items: center;
+      font-size: 15px;
+      font-weight: bold;
+      color: #2d3748;
+    }
+    .key-badge {
+      display: inline-block;
+      min-width: 20px;
+      padding: 4px 8px;
+      margin-right: 4px;
+      background: #f8fafc;
+      border: 1px solid #cbd5df;
+      border-radius: 6px;
+      font-family: ui-monospace, monospace;
+      text-align: center;
+      box-shadow: 0 3px 0 #cbd5df;
+    }
+    .guide-desc {
+      margin-left: 8px;
+      color: #4a5568;
+    }
+
     @media (max-width: 820px) {
       header, .layout { grid-template-columns: 1fr; }
       .axis, .axis-slider { grid-template-columns: 76px 1fr 1fr; }
@@ -372,6 +402,36 @@
         </div>
 
         <div class="panel">
+          <h2>🎮 キーボード＆ゲームパッド操作</h2>
+          <div class="key-guide">
+            <div class="guide-item">
+              <div>
+                <span class="key-badge">W</span><span class="key-badge">A</span><span class="key-badge">S</span><span class="key-badge">D</span>
+              </div>
+              <span class="guide-desc">平面移動 / 左スティック</span>
+            </div>
+            <div class="guide-item">
+              <div>
+                <span class="key-badge">Q</span><span class="key-badge">E</span>
+              </div>
+              <span class="guide-desc">上下移動 / 右スティック上下</span>
+            </div>
+            <div class="guide-item">
+              <div>
+                <span class="key-badge">Space</span>
+              </div>
+              <span class="guide-desc">つかむ / Aボタン(×)</span>
+            </div>
+            <div class="guide-item">
+              <div>
+                <span class="key-badge">Shift</span>
+              </div>
+              <span class="guide-desc">はなす / Bボタン(〇)</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
           <h2>通信ログ</h2>
           <pre id="log"></pre>
           <details>
@@ -409,7 +469,8 @@
 
     async function sendCommand(command) {
       if (!writer) {
-        log("ロボとつながっていません");
+        // UIテスト用にログだけ出す場合は以下のコメントを外す（ロボットなしで遊ぶ用）
+        // log(`[未接続] ${command}`);
         return false;
       }
       await writer.write(`${command}\n`);
@@ -460,14 +521,9 @@
 
     function getDieDotsHTML(value) {
       const dotPatterns = {
-        1: [4],
-        2: [0, 8],
-        3: [0, 4, 8],
-        4: [0, 2, 6, 8],
-        5: [0, 2, 4, 6, 8],
-        6: [0, 2, 3, 5, 6, 8]
+        1: [4], 2: [0, 8], 3: [0, 4, 8],
+        4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8]
       };
-      
       if (!value) return Array(9).fill('<div></div>').join('');
 
       const activeDots = dotPatterns[value];
@@ -498,7 +554,6 @@
       const startTime = Date.now();
       const interval = setInterval(() => {
         renderDice(containerId, rollDice(), colorClass);
-        
         if (Date.now() - startTime >= durationMs) {
           clearInterval(interval);
           const finalRoll = rollDice();
@@ -554,7 +609,6 @@
               btn.disabled = false;
               slider.disabled = false;
             }, 600);
-            
           });
         }, 800);
       });
@@ -584,66 +638,52 @@
         return;
       }
 
-      port = await navigator.serial.requestPort();
-      await port.open({ baudRate: 115200 });
+      try {
+        port = await navigator.serial.requestPort();
+        await port.open({ baudRate: 115200 });
 
-      const textEncoder = new TextEncoderStream();
-      textEncoder.readable.pipeTo(port.writable).catch(() => {});
-      writer = textEncoder.writable.getWriter();
+        const textEncoder = new TextEncoderStream();
+        textEncoder.readable.pipeTo(port.writable).catch(() => {});
+        writer = textEncoder.writable.getWriter();
 
-      statusEl.textContent = "接続中";
-      log("Arduinoに接続しました");
-      readLoop();
+        statusEl.textContent = "接続中";
+        log("Arduinoに接続しました");
+        readLoop();
+      } catch (e) {
+        log("接続がキャンセルされたか、エラーが発生しました");
+      }
     });
 
-    // --- ステッピングモーター（J1, J2）の制御 ---
+    // --- ステッピングモーター（J1, J2）の画面ボタン制御 ---
     document.querySelectorAll("[data-axis]").forEach((button) => {
-      // ボタンを押したときに動くコマンドを送る
       const start = (event) => {
-        event.preventDefault(); // スクロール等の標準動作をブロック
+        event.preventDefault();
         const speed = Math.max(50, Number(speedEl.value) || 50);
         const signedSpeed = speed * Number(button.dataset.dir);
         sendCommand(`DRIVE ${button.dataset.axis} ${signedSpeed}`);
       };
       
-      // ボタンから指を離したとき（またはカーソルが外れたとき）に止まるコマンドを送る
       const stop = (event) => {
         event.preventDefault();
         sendCommand(`DRIVE ${button.dataset.axis} 0`);
       };
 
-      // 各種操作イベントを登録（PC・スマホ両対応）
       button.addEventListener("pointerdown", start);
       button.addEventListener("pointerup", stop);
       button.addEventListener("pointercancel", stop);
       button.addEventListener("pointerleave", stop);
     });
 
-    // --- Z軸サーボの制御（高さ 0〜100% 表示） ---
-    const zSlider = document.querySelector("#zSlider");
-    const zVal = document.querySelector("#zVal");
-    
-    // スライダーを動かしている間は「高さの割合（％）」として計算して表示する
-    zSlider.addEventListener("input", (e) => {
-      const percent = Math.round((e.target.value / 180) * 100);
-      zVal.textContent = `${percent}%`;
-    });
-    
-    // スライダーから指を離した瞬間に、裏側ではサーボ用の角度(0〜180)を送る
-    zSlider.addEventListener("change", (e) => {
-      sendCommand(`Z ${e.target.value}`);
-    });
-
     // --- 各種ボタンイベント ---
     document.querySelector("#stop").addEventListener("click", () => sendCommand("STOP"));
     document.querySelector("#home").addEventListener("click", () => {
       sendCommand("HOME");
-      // UIのZ軸表示も安全な位置(50%)に戻す
-      zSlider.value = 90;
-      zVal.textContent = "50%";
+      document.querySelector("#zSlider").value = 90;
+      document.querySelector("#zVal").textContent = "50%";
+      currentZ = 90;
+      lastZSent = 90;
     });
     
-    // アームのサーボ角度送信（※機構に合わせて角度の数値 0 や 90 は適宜調整してください）
     document.querySelector("#closeArm").addEventListener("click", () => sendCommand("ARM 0"));
     document.querySelector("#openArm").addEventListener("click", () => sendCommand("ARM 90"));
     
@@ -651,34 +691,50 @@
       sendCommand(document.querySelector("#customCommand").value.trim());
     });
 
-// ==========================================
-    // 🎮 キーボード＆ゲームパッド操作
+    // --- Z軸サーボのスライダー制御 ---
+    const zSlider = document.querySelector("#zSlider");
+    const zVal = document.querySelector("#zVal");
+    
+    zSlider.addEventListener("input", (e) => {
+      const percent = Math.round((e.target.value / 180) * 100);
+      zVal.textContent = `${percent}%`;
+    });
+    
+    zSlider.addEventListener("change", (e) => {
+      sendCommand(`Z ${e.target.value}`);
+      currentZ = parseInt(e.target.value);
+      lastZSent = currentZ;
+    });
+
+    // ==========================================
+    // 🎮 キーボード＆ゲームパッド操作ロジック
     // ==========================================
     const activeKeys = new Set();
-    let currentZ = parseInt(document.querySelector("#zSlider").value) || 90;
+    let currentZ = parseInt(zSlider.value) || 90;
     let lastZSent = currentZ;
 
     // --- キーボード処理 ---
     window.addEventListener('keydown', (e) => {
-      if (e.repeat) return; // 押しっぱなし連打を防止
+      if (e.repeat) return;
       const key = e.key.toLowerCase();
       activeKeys.add(key);
 
+      // コマンド入力欄にフォーカスがある時はキーボード操縦を無効化
+      if (document.activeElement.tagName === "INPUT") return;
+
       const speed = Math.max(50, Number(speedEl.value) || 50);
 
-      // 移動: W A S D
       if (key === 'a') sendCommand(`DRIVE J1 ${-speed}`);
       if (key === 'd') sendCommand(`DRIVE J1 ${speed}`);
       if (key === 'w') sendCommand(`DRIVE J2 ${speed}`);
       if (key === 's') sendCommand(`DRIVE J2 ${-speed}`);
 
-      // アーム開閉: Space(つかむ), Shift(はなす)
       if (key === ' ') {
-        e.preventDefault(); // 画面が下にスクロールするのを防ぐ
-        sendCommand("ARM 0"); // ※0度は実機に合わせて調整してください
+        e.preventDefault(); 
+        sendCommand("ARM 0"); 
       }
       if (e.key === 'Shift') {
-        sendCommand("ARM 90"); // ※90度は実機に合わせて調整してください
+        sendCommand("ARM 90"); 
       }
     });
 
@@ -686,27 +742,26 @@
       const key = e.key.toLowerCase();
       activeKeys.delete(key);
 
-      // キーを離したらモーター停止
       if (key === 'a' || key === 'd') sendCommand(`DRIVE J1 0`);
       if (key === 'w' || key === 's') sendCommand(`DRIVE J2 0`);
     });
 
-    // Z軸（サーボ）は長押しで滑らかに動かすためのループ処理
+    // Z軸（サーボ）のキーボード長押しループ処理
     setInterval(() => {
       let zChanged = false;
-      if (activeKeys.has('q')) { // 上昇
+      if (activeKeys.has('q')) {
         currentZ = Math.max(0, currentZ - 2);
         zChanged = true;
       }
-      if (activeKeys.has('e')) { // 下降
+      if (activeKeys.has('e')) {
         currentZ = Math.min(180, currentZ + 2);
         zChanged = true;
       }
 
       if (zChanged && Math.round(currentZ) !== lastZSent) {
         lastZSent = Math.round(currentZ);
-        document.querySelector("#zSlider").value = lastZSent;
-        document.querySelector("#zVal").textContent = `${Math.round((lastZSent / 180) * 100)}%`;
+        zSlider.value = lastZSent;
+        zVal.textContent = `${Math.round((lastZSent / 180) * 100)}%`;
         sendCommand(`Z ${lastZSent}`);
       }
     }, 50);
@@ -732,29 +787,25 @@
       const pad = navigator.getGamepads()[gamepadIndex];
       if (pad) {
         const speed = Math.max(50, Number(speedEl.value) || 50);
-        const deadzone = 0.2; // スティックの遊び（触ってない時の誤作動防止）
+        const deadzone = 0.2;
 
-        // 左スティック (J1/J2)
         let j1Speed = Math.abs(pad.axes[0]) > deadzone ? Math.round(pad.axes[0] * speed) : 0;
         let j2Speed = Math.abs(pad.axes[1]) > deadzone ? Math.round(-pad.axes[1] * speed) : 0;
 
         if (j1Speed !== lastJ1Speed) { sendCommand(`DRIVE J1 ${j1Speed}`); lastJ1Speed = j1Speed; }
         if (j2Speed !== lastJ2Speed) { sendCommand(`DRIVE J2 ${j2Speed}`); lastJ2Speed = j2Speed; }
 
-        // 右スティックの上下 (Z軸)
         let zAxis = pad.axes[3]; 
         if (Math.abs(zAxis) > deadzone) {
-          // スティックの倒し具合で昇降スピードを変える
           currentZ = Math.max(0, Math.min(180, currentZ + zAxis * 3));
           if (Math.round(currentZ) !== lastZSent) {
             lastZSent = Math.round(currentZ);
-            document.querySelector("#zSlider").value = lastZSent;
-            document.querySelector("#zVal").textContent = `${Math.round((lastZSent / 180) * 100)}%`;
+            zSlider.value = lastZSent;
+            zVal.textContent = `${Math.round((lastZSent / 180) * 100)}%`;
             sendCommand(`Z ${lastZSent}`);
           }
         }
 
-        // ボタン (Aボタン[0]:つかむ, Bボタン[1]:はなす)
         const btnA = pad.buttons[0].pressed;
         const btnB = pad.buttons[1].pressed;
         if (btnA && !lastBtnA) sendCommand("ARM 0");
@@ -764,12 +815,8 @@
       }
       requestAnimationFrame(pollGamepad);
     }
-    // ==========================================
 
-
-    // 初期化
-    updateTurn();
-    // 初期化
+    // --- 初期化 ---
     updateTurn();
   </script>
 </body>
