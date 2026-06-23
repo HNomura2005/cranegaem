@@ -130,15 +130,18 @@ void clearDriveSpeeds() {
   arm2.setSpeed(0.0);
 }
 
+// 【修正箇所】長押し後に「元の座標に戻ろうとする暴走」を防ぐ処理を追加
 void setDriveSpeed(const String &axisName, float speed) {
   if (axisName == "J1") {
     arm1Speed = speed;
     arm1.setSpeed(speed);
+    if (speed == 0.0) arm1.moveTo(arm1.currentPosition()); // 今の場所を新たな目標にセット
     return;
   }
   if (axisName == "J2") {
     arm2Speed = speed;
     arm2.setSpeed(speed);
+    if (speed == 0.0) arm2.moveTo(arm2.currentPosition()); // 今の場所を新たな目標にセット
     return;
   }
 }
@@ -197,7 +200,7 @@ void handleCommand(String commandLine) {
     return;
   }
 
-  // New commands for Servo control
+  // Z軸（上下）のサーボ制御
   if (command == "Z") {
     int angle = commandLine.toInt();
     angle = constrain(angle, 0, 180); // Restrict to valid servo limits
@@ -206,6 +209,7 @@ void handleCommand(String commandLine) {
     return;
   }
 
+  // アームのサーボ制御
   if (command == "ARM") {
     int angle = commandLine.toInt();
     angle = constrain(angle, 0, 180); // Restrict to valid servo limits
