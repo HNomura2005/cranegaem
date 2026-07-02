@@ -1,12 +1,10 @@
 #include <AccelStepper.h>
 #include <ESP32Servo.h>
 
-// Install the AccelStepper and ESP32Servo libraries from Arduino IDE Library Manager.
-// Use external STEP/DIR stepper drivers for horizontal axes. 
 
 constexpr uint32_t BAUD_RATE = 115200;
 
-// --- ESP32 Pin Definitions based on Schematic ---
+// --- ESP32 Pin  ---
 constexpr uint8_t J1_STEP_PIN = 14;
 constexpr uint8_t J1_DIR_PIN = 27;
 constexpr uint8_t J2_STEP_PIN = 18;
@@ -21,8 +19,7 @@ constexpr float MAX_SPEED = 900.0;
 constexpr float ACCELERATION = 600.0;
 constexpr long HOME_J1 = 0;
 constexpr long HOME_J2 = 0;
-constexpr int SAFE_SERVO_ANGLE = 90; // Default safe angle for servos
-
+constexpr int SAFE_SERVO_ANGLE = 90; 
 // --- Motor Objects ---
 AccelStepper arm1(AccelStepper::DRIVER, J1_STEP_PIN, J1_DIR_PIN);
 AccelStepper arm2(AccelStepper::DRIVER, J2_STEP_PIN, J2_DIR_PIN);
@@ -43,7 +40,7 @@ void clearDriveSpeeds();
 AccelStepper *axisFromName(const String &name) {
   if (name == "J1") return &arm1;
   if (name == "J2") return &arm2;
-  return nullptr; // Z is now handled as a servo
+  return nullptr; 
 }
 
 void configureAxis(AccelStepper &axis) {
@@ -111,8 +108,7 @@ void stopAll() {
 }
 
 void home() {
-  stopped = false;
-  // Move steppers to zero, reset servos to a safe middle position
+  stopped = falses
   moveTo(HOME_J1, HOME_J2);
   zServo.write(SAFE_SERVO_ANGLE);
   armServo.write(SAFE_SERVO_ANGLE);
@@ -130,7 +126,7 @@ void clearDriveSpeeds() {
   arm2.setSpeed(0.0);
 }
 
-// 【修正箇所】長押し後に「元の座標に戻ろうとする暴走」を防ぐ処理を追加
+// 長押し後に「元の座標に戻ろうとする暴走」を防ぐ処理を追加
 void setDriveSpeed(const String &axisName, float speed) {
   if (axisName == "J1") {
     arm1Speed = speed;
@@ -203,7 +199,7 @@ void handleCommand(String commandLine) {
   // Z軸（上下）のサーボ制御
   if (command == "Z") {
     int angle = commandLine.toInt();
-    angle = constrain(angle, 0, 180); // Restrict to valid servo limits
+    angle = constrain(angle, 0, 180); 
     zServo.write(angle);
     Serial.println("OK Z moved");
     return;
@@ -212,7 +208,7 @@ void handleCommand(String commandLine) {
   // アームのサーボ制御
   if (command == "ARM") {
     int angle = commandLine.toInt();
-    angle = constrain(angle, 0, 180); // Restrict to valid servo limits
+    angle = constrain(angle, 0, 180); 
     armServo.write(angle);
     Serial.println("OK arm moved");
     return;
@@ -246,22 +242,21 @@ void handleCommand(String commandLine) {
 
 void setup() {
   pinMode(ENABLE_PIN, OUTPUT);
-  digitalWrite(ENABLE_PIN, LOW); // Enable drivers
+  digitalWrite(ENABLE_PIN, LOW); 
 
-  // Initialize Servos
-  // ESP32 timers need to be allocated for standard servos
+
   ESP32PWM::allocateTimer(0);
   ESP32PWM::allocateTimer(1);
   ESP32PWM::allocateTimer(2);
   ESP32PWM::allocateTimer(3);
   
-  zServo.setPeriodHertz(50); // Standard 50hz servo
+  zServo.setPeriodHertz(50); 
   armServo.setPeriodHertz(50);
   
   zServo.attach(Z_SERVO_PIN, 500, 2400); 
   armServo.attach(ARM_SERVO_PIN, 500, 2400);
   
-  // Set initial safe angles
+ 
   zServo.write(SAFE_SERVO_ANGLE);
   armServo.write(SAFE_SERVO_ANGLE);
 
