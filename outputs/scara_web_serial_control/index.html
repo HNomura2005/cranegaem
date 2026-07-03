@@ -173,7 +173,7 @@
       white-space: pre-wrap;
     }
 
-    /* 操作ガイド用のスタイル */
+
     .key-guide {
       display: flex;
       flex-direction: column;
@@ -204,7 +204,7 @@
       color: #4a5568;
     }
 
-    /* レーダーキャンバス用 */
+ 
     .radar-container {
       display: flex;
       justify-content: center;
@@ -243,17 +243,17 @@
               <input id="speed" type="number" value="450" min="50" max="1500" step="50">
             </div>
             <div class="axis">
-              <label>肩 (旋回)</label>
+              <label>肩</label>
               <button data-axis="J1" data-dir="-1">左回転</button>
               <button data-axis="J1" data-dir="1">右回転</button>
             </div>
             <div class="axis">
-              <label>肘 (伸縮)</label>
-              <button data-axis="J2" data-dir="-1">ちぢむ</button>
-              <button data-axis="J2" data-dir="1">のびる</button>
+              <label>肘 </label>
+              <button data-axis="J2" data-dir="-1">縮む</button>
+              <button data-axis="J2" data-dir="1">伸びる</button>
             </div>
             <div class="axis-slider">
-              <label>上下高さ</label>
+              <label>高さ</label>
               <input type="range" id="zSlider" min="0" max="180" value="90">
               <span id="zVal" style="font-weight: bold; text-align: center;">50%</span>
             </div>
@@ -261,39 +261,39 @@
         </div>
 
         <div class="panel">
-          <h2>アーム（サーボ）</h2>
+          <h2>アーム</h2>
           <div class="magnet">
-            <button class="primary" id="closeArm">つかむ</button>
-            <button id="openArm">はなす</button>
+            <button class="primary" id="closeArm">掴む</button>
+            <button id="openArm">話す</button>
           </div>
         </div>
         
         <div class="panel">
-          <h2>キーボード＆ゲームパッド操作</h2>
+          <h2>キーボード操作</h2>
           <div class="key-guide">
             <div class="guide-item">
               <div>
                 <span class="key-badge">W</span><span class="key-badge">A</span><span class="key-badge">S</span><span class="key-badge">D</span>
               </div>
-              <span class="guide-desc">平面移動 / 左スティック</span>
+              <span class="guide-desc">平面移動 </span>
             </div>
             <div class="guide-item">
               <div>
                 <span class="key-badge">Q</span><span class="key-badge">E</span>
               </div>
-              <span class="guide-desc">上下移動 / 右スティック上下</span>
+              <span class="guide-desc">上下移動 </span>
             </div>
             <div class="guide-item">
               <div>
                 <span class="key-badge">Space</span>
               </div>
-              <span class="guide-desc">つかむ</span>
+              <span class="guide-desc">掴む</span>
             </div>
             <div class="guide-item">
               <div>
                 <span class="key-badge">Shift</span>
               </div>
-              <span class="guide-desc">はなす</span>
+              <span class="guide-desc">話す</span>
             </div>
           </div>
         </div>
@@ -301,7 +301,7 @@
 
       <div>
         <div class="panel">
-          <h2>レーダー（現在位置）</h2>
+          <h2>レーダー</h2>
           <div class="radar-container">
             <canvas id="radarCanvas" width="300" height="300"></canvas>
           </div>
@@ -336,8 +336,8 @@
     let currentArm2 = 0;
 
     // ※ここは後で実際のロボットに合わせて数値を調整します！
-    const STEPS_PER_REV_J1 = 1600; // 肩モーターが1周(360度)するのに必要なステップ数（仮）
-    const STEPS_PER_MM_J2 = 10;    // 肘モーターが1mm伸びるのに必要なステップ数（仮）
+    const STEPS_PER_REV_J1 = 1600; // 肩モーターが1周(360度)するのに必要なステップ数
+    const STEPS_PER_MM_J2 = 10;    // 肘モーターが1mm伸びるのに必要なステップ数
 
     function log(message) {
       const time = new Date().toLocaleTimeString();
@@ -356,7 +356,7 @@
       return true;
     }
 
-    // --- レーダー描画処理 ---
+    
     function drawRadar() {
       const width = canvas.width;
       const height = canvas.height;
@@ -383,7 +383,7 @@
 
       // 現在のステップ数から角度と長さを計算
       const angleRad = (currentArm1 / STEPS_PER_REV_J1) * Math.PI * 2 - (Math.PI / 2); // 0度を真上にする
-      const radius = 30 + (currentArm2 / STEPS_PER_MM_J2); // 基準の長さ30px + 伸縮量
+      const radius = 30 + (currentArm2 / STEPS_PER_MM_J2); 
 
       // 先端のX,Y座標を三角関数で計算
       const targetX = centerX + radius * Math.cos(angleRad);
@@ -413,19 +413,19 @@
     // 初期描画
     drawRadar();
 
-    // 200ミリ秒（1秒間に5回）ごとに裏側でSTATUSコマンドを送信して座標を更新
+    // 500ミリ秒（1秒間に5回）ごとに裏側でSTATUSコマンドを送信して座標を更新
     setInterval(() => {
       if (writer) {
         sendCommand("STATUS", true); // true = ログに出さない
       }
-    }, 200);
+    }, 500);
 
-    // --- シリアル通信の受信ロジック（ちぎれた文字を繋ぎ合わせるバッファ処理付き） ---
+    
     async function readLoop() {
       const textDecoder = new TextDecoderStream();
       port.readable.pipeTo(textDecoder.writable).catch(() => {});
       reader = textDecoder.readable.getReader();
-      let buffer = ""; // 文字を一時保存する箱
+      let buffer = ""; 
 
       try {
         while (true) {
@@ -510,7 +510,7 @@
       currentZ = 90;
       lastZSent = 90;
       
-      // レーダーも初期位置っぽくリセット（実際のマイコンの応答を待たずに仮反映）
+    
       currentArm1 = 0;
       currentArm2 = 0;
       drawRadar();
@@ -538,9 +538,7 @@
       lastZSent = currentZ;
     });
 
-    // ==========================================
-    // キーボード＆ゲームパッド操作ロジック
-    // ==========================================
+  
     const activeKeys = new Set();
     let currentZ = parseInt(zSlider.value) || 90;
     let lastZSent = currentZ;
@@ -578,7 +576,7 @@
       if (key === 'w' || key === 's') sendCommand(`DRIVE J2 0`);
     });
 
-    // Z軸（サーボ）のキーボード長押しループ処理
+    // Z軸のキーボード長押しループ処理
     setInterval(() => {
       let zChanged = false;
       if (activeKeys.has('q')) {
