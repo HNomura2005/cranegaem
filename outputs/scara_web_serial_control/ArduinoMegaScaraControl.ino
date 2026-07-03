@@ -126,12 +126,11 @@ void clearDriveSpeeds() {
   arm2.setSpeed(0.0);
 }
 
-// 長押し後に「元の座標に戻ろうとする暴走」を防ぐ処理を追加
 void setDriveSpeed(const String &axisName, float speed) {
   if (axisName == "J1") {
     arm1Speed = speed;
     arm1.setSpeed(speed);
-    if (speed == 0.0) arm1.moveTo(arm1.currentPosition()); // 今の場所を新たな目標にセット
+    if (speed == 0.0) arm1.moveTo(arm1.currentPosition()); 
     return;
   }
   if (axisName == "J2") {
