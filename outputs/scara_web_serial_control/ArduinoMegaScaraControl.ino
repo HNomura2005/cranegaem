@@ -116,7 +116,7 @@ void stopAll() {
   zAxis.stop();
 }
 
-// ★Z軸の原点探し（ホーミング）専用の関数を追加しました
+// Z軸の原点探し専用の関数を追加した
 void homeZAxis() {
   Serial.println("Z axis homing started...");
   
@@ -130,7 +130,7 @@ void homeZAxis() {
   zAxis.stop();
   
   // 少しだけ逆に戻して、スイッチから離れる（スイッチの保護と正確な位置決めのため）
-  zAxis.move(50); // 50ステップ戻る（方向が逆の場合は -50 にしてください）
+  zAxis.move(50); // 50ステップ戻る（方向が逆の場合は -50 にしろ）
   while (zAxis.distanceToGo() != 0) {
     zAxis.run();
   }
@@ -140,7 +140,7 @@ void homeZAxis() {
   Serial.println("Z axis homing complete!");
 }
 
-// ★HOMEコマンドの動作を変更しました
+// HOMEコマンドの動作を変更
 void home() {
   stopped = false;
   // 先にZ軸のホーミングを行う
