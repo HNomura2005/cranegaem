@@ -120,7 +120,7 @@ void stopAll() {
 void homeZAxis() {
   Serial.println("Z axis homing started...");
   
-  // スイッチが押される（LOWになる）まで、一定の速度で動き続ける
+  // スイッチが押されるまで、一定の速度で動き続ける
   zAxis.setSpeed(HOMING_SPEED);
   while (digitalRead(Z_LIMIT_PIN) == HIGH) {
     zAxis.runSpeed(); // 加減速なしで一定速度で動く
@@ -135,7 +135,7 @@ void homeZAxis() {
     zAxis.run();
   }
   
-  // 今いる場所を「0（原点）」として記憶する
+  // 今いる場所を「原点」として記憶する
   zAxis.setCurrentPosition(0);
   Serial.println("Z axis homing complete!");
 }
@@ -284,7 +284,7 @@ void setup() {
   pinMode(ENABLE_PIN, OUTPUT);
   digitalWrite(ENABLE_PIN, LOW);
 
-  // ★新規追加：リミットスイッチのピンを「内部プルアップ付きの入力」として設定
+  // リミットスイッチのピンを「内部プルアップ付きの入力」として設定
   pinMode(Z_LIMIT_PIN, INPUT_PULLUP); 
 
   ESP32PWM::allocateTimer(0);
