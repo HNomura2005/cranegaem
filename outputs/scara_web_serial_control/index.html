@@ -1,15 +1,15 @@
-<!doctype html>
+<!doctt;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f7fa;
+      color: #17202a;ype html>
 <html lang="ja">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>パキラロボ コントローラー</title>
+  <title>千代丸パキラロボ コントローラー</title>
   <style>
     :root {
-      color-scheme: light;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #f5f7fa;
-      color: #17202a;
+      color-scheme: ligh
     }
 
     body {
@@ -212,8 +212,8 @@
 <body>
   <main>
     <header>
-      <h1>パキラロボ コントローラー</h1>
-      <div class="status" id="status">未接続</div>
+      <h1>千代丸パキラロボ コントローラー</h1>
+      <div class="status" id="status">アンタッチブル</div>
     </header>
 
     <section class="toolbar">
@@ -436,8 +436,8 @@
 
     document.querySelector("#connect").addEventListener("click", async () => {
       if (!("serial" in navigator)) {
-        statusEl.textContent = "Web Serial非対応";
-        log("ChromeまたはEdgeで開いてください");
+        statusEl.textContent = "Web Serialあかんで";
+        log("ChromeまたはEdgeであけろ);
         return;
       }
 
@@ -449,11 +449,11 @@
         textEncoder.readable.pipeTo(port.writable).catch(() => {});
         writer = textEncoder.writable.getWriter();
 
-        statusEl.textContent = "接続中";
+        statusEl.textContent = "コネクト中";
         log("Arduinoに接続しました");
         readLoop();
       } catch (e) {
-        log("接続がキャンセルされたか、エラーが発生しました");
+        log("接続がキャンセルされたか、エラーが発生した");
       }
     });
 
