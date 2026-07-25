@@ -1,7 +1,4 @@
-<!doctt;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #f5f7fa;
-      color: #17202a;ype html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="utf-8">
@@ -9,12 +6,15 @@
   <title>千代丸パキラロボ コントローラー</title>
   <style>
     :root {
-      color-scheme: ligh
+      color-scheme: light;
     }
 
     body {
       margin: 0;
       min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f7fa;
+      color: #17202a;
     }
 
     main {
@@ -237,7 +237,7 @@
               <button data-axis="J1" data-dir="1">右回転</button>
             </div>
             <div class="axis">
-              <label>肘 </label>
+              <label>肘</label>
               <button data-axis="J2" data-dir="-1">縮む</button>
               <button data-axis="J2" data-dir="1">伸びる</button>
             </div>
@@ -265,13 +265,13 @@
               <div>
                 <span class="key-badge">W</span><span class="key-badge">A</span><span class="key-badge">S</span><span class="key-badge">D</span>
               </div>
-              <span class="guide-desc">平面移動 </span>
+              <span class="guide-desc">平面移動</span>
             </div>
             <div class="guide-item">
               <div>
                 <span class="key-badge">Q</span><span class="key-badge">E</span>
               </div>
-              <span class="guide-desc">上下移動 </span>
+              <span class="guide-desc">上下移動</span>
             </div>
             <div class="guide-item">
               <div>
@@ -437,7 +437,7 @@
     document.querySelector("#connect").addEventListener("click", async () => {
       if (!("serial" in navigator)) {
         statusEl.textContent = "Web Serialあかんで";
-        log("ChromeまたはEdgeであけろ);
+        log("ChromeまたはEdgeであけろ");
         return;
       }
 
