@@ -20,7 +20,7 @@ constexpr uint8_t ARM_SERVO_PIN = 13;
 // --- 動作設定 ---
 constexpr float MAX_SPEED = 900.0;
 constexpr float ACCELERATION = 600.0;
-constexpr float HOMING_SPEED = -300.0; //原点を探すときの速度（マイナスだと下がる方向と仮定）
+constexpr float HOMING_SPEED = -300.0; // 原点を探すときの速度（マイナスだと下がる方向と仮定）
 
 constexpr long HOME_J1 = 0;
 constexpr long HOME_J2 = 0;
