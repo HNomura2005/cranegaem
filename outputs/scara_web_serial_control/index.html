@@ -81,6 +81,7 @@
       margin-bottom: 14px;
     }
 
+    /* ▼▼ ボタンの長押し干渉を完全に防ぐ設定 ▼▼ */
     button {
       min-height: 46px;
       border: 1px solid #a9b7c6;
@@ -91,9 +92,11 @@
       font-weight: 750;
       cursor: pointer;
       padding: 0 16px;
+      
       user-select: none;
       -webkit-user-select: none;
-      touch-action: manipulation;
+      -webkit-touch-callout: none;
+      touch-action: none; /* manipulationからnoneへ変更（スマホでのスクロール干渉を防ぐ） */
     }
 
     button:hover:not(:disabled) {
@@ -126,7 +129,6 @@
       background: #fff2cc;
     }
     
-    /* 原点設定ボタン用のスタイル */
     button.info {
       border-color: #4da8da;
       background: #e6f7ff;
@@ -227,7 +229,6 @@
       <button class="primary" id="connect">Arduinoに接続</button>
       <button class="danger" id="stop">全停止</button>
       <button class="warn" id="home">初期位置へ戻る</button>
-      <!-- 【追加】ここを原点にするボタン -->
       <button class="info" id="zero">ここを原点にする</button>
     </section>
 
@@ -487,10 +488,14 @@
         sendCommand(`DRIVE ${button.dataset.axis} 0`);
       };
 
+      // ▼▼ スマホ等の長押し判定を確実にする ▼▼
       button.addEventListener("pointerdown", start);
       button.addEventListener("pointerup", stop);
       button.addEventListener("pointercancel", stop);
       button.addEventListener("pointerleave", stop);
+      
+      // スマホの長押しメニューを禁止
+      button.addEventListener("contextmenu", (e) => e.preventDefault()); 
     });
 
     document.querySelector("#stop").addEventListener("click", () => sendCommand("STOP"));
@@ -502,7 +507,6 @@
       drawRadar();
     });
 
-    // 【追加】ここを原点にするボタンの処理
     document.querySelector("#zero").addEventListener("click", () => {
       if (confirm("現在の位置を新しい初期位置（原点）として記憶しますか？")) {
         sendCommand("ZERO");
