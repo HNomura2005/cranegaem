@@ -4,18 +4,18 @@
 constexpr uint32_t BAUD_RATE = 115200;
 
 // --- ESP32 ピン設定 ---
-constexpr uint8_t J1_STEP_PIN = 14;
-constexpr uint8_t J1_DIR_PIN = 27;
-constexpr uint8_t J2_STEP_PIN = 18;
-constexpr uint8_t J2_DIR_PIN = 19;
+constexpr uint8_t J1_STEP_PIN = 25;
+constexpr uint8_t J1_DIR_PIN = 26;
+constexpr uint8_t J2_STEP_PIN = 27;
+constexpr uint8_t J2_DIR_PIN = 14;
 
 // Z軸（昇降用）
-constexpr uint8_t Z_STEP_PIN = 26; 
-constexpr uint8_t Z_DIR_PIN = 33;  
-// リミットスイッチ用のピンは削除しました
+constexpr uint8_t Z_STEP_PIN = 33; 
+constexpr uint8_t Z_DIR_PIN = 32;  
+// リミットスイッチ用のピンは削除
 
-constexpr uint8_t ENABLE_PIN = 25;
-constexpr uint8_t ARM_SERVO_PIN = 13;
+constexpr uint8_t ENABLE_PIN = 16;
+constexpr uint8_t ARM_SERVO_PIN = 12;
 
 // --- 動作設定 ---
 // アーム（J1, J2）用の設定
