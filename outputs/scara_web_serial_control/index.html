@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>千代丸パキラロボ コントローラー</title>
+  <title>PAKIRAロボ コントローラー</title>
   <style>
     :root {
       color-scheme: light;
@@ -125,6 +126,13 @@
       border-color: #bb7a00;
       background: #fff2cc;
     }
+    
+    /* 原点設定ボタン用のスタイル */
+    button.info {
+      border-color: #4da8da;
+      background: #e6f7ff;
+      color: #005a8c;
+    }
 
     .manual { display: grid; gap: 10px; }
     .axis {
@@ -212,7 +220,7 @@
 <body>
   <main>
     <header>
-      <h1>千代丸パキラロボ コントローラー</h1>
+      <h1>PAKIRAロボ コントローラー</h1>
       <div class="status" id="status">アンタッチブル</div>
     </header>
 
@@ -220,6 +228,8 @@
       <button class="primary" id="connect">Arduinoに接続</button>
       <button class="danger" id="stop">全停止</button>
       <button class="warn" id="home">初期位置へ戻る</button>
+      <!-- 【追加】ここを原点にするボタン -->
+      <button class="info" id="zero">ここを原点にする</button>
     </section>
 
     <section class="layout">
@@ -227,7 +237,6 @@
         <div class="panel">
           <h2>クレーン手動操作</h2>
           <div class="manual">
-            <!-- 速度設定をアームとZ軸で分離 -->
             <div style="display: flex; gap: 20px; margin-bottom: 8px;">
               <div class="field">
                 <label for="speed">アーム速度</label>
@@ -325,15 +334,13 @@
     const statusEl = document.querySelector("#status");
     const logEl = document.querySelector("#log");
     const speedEl = document.querySelector("#speed");
-    const speedZEl = document.querySelector("#speedZ"); // Z軸用の速度入力を追加
+    const speedZEl = document.querySelector("#speedZ");
 
-    // レーダー用の変数
     const canvas = document.getElementById("radarCanvas");
     const ctx = canvas.getContext("2d");
     let currentArm1 = 0;
     let currentArm2 = 0;
 
-    // 後で実際のロボットに合わせて数値を調整して
     const STEPS_PER_REV_J1 = 1600; 
     const STEPS_PER_MM_J2 = 10;    
 
@@ -465,12 +472,10 @@
       }
     });
 
-    // --- 各モーター（J1, J2, Z）の画面ボタン制御 ---
     document.querySelectorAll("[data-axis]").forEach((button) => {
       const start = (event) => {
         event.preventDefault();
         const axis = button.dataset.axis;
-        // 操作する軸がZならZ用の入力値、それ以外はアーム用の入力値を使用
         const targetSpeedEl = (axis === "Z") ? speedZEl : speedEl;
         const speed = Math.max(50, Number(targetSpeedEl.value) || 50);
         
@@ -489,47 +494,54 @@
       button.addEventListener("pointerleave", stop);
     });
 
-    // --- 各種ボタンイベント ---
     document.querySelector("#stop").addEventListener("click", () => sendCommand("STOP"));
+    
     document.querySelector("#home").addEventListener("click", () => {
       sendCommand("HOME");
       currentArm1 = 0;
       currentArm2 = 0;
       drawRadar();
     });
+
+    // 【追加】ここを原点にするボタンの処理
+    document.querySelector("#zero").addEventListener("click", () => {
+      if (confirm("現在の位置を新しい初期位置（原点）として記憶しますか？")) {
+        sendCommand("ZERO");
+        currentArm1 = 0;
+        currentArm2 = 0;
+        drawRadar();
+        log("現在の位置を原点として設定しました");
+      }
+    });
     
     document.querySelector("#closeArm").addEventListener("click", () => sendCommand("ARM 0"));
-    // 【変更箇所】 90度から70度へ
     document.querySelector("#openArm").addEventListener("click", () => sendCommand("ARM 70"));
     
     document.querySelector("#sendCustom").addEventListener("click", () => {
       sendCommand(document.querySelector("#customCommand").value.trim());
     });
 
-    // --- キーボード処理 ---
     window.addEventListener('keydown', (e) => {
       if (e.repeat) return;
       const key = e.key.toLowerCase();
 
-      // コマンド入力欄にフォーカスがある時はキーボード操縦を無効化
       if (document.activeElement.tagName === "INPUT") return;
 
       const speedArm = Math.max(50, Number(speedEl.value) || 50);
-      const speedZ = Math.max(50, Number(speedZEl.value) || 50); // Z専用速度を取得
+      const speedZ = Math.max(50, Number(speedZEl.value) || 50); 
 
       if (key === 'a') sendCommand(`DRIVE J1 ${-speedArm}`);
       if (key === 'd') sendCommand(`DRIVE J1 ${speedArm}`);
       if (key === 'w') sendCommand(`DRIVE J2 ${speedArm}`);
       if (key === 's') sendCommand(`DRIVE J2 ${-speedArm}`);
       
-      if (key === 'q') sendCommand(`DRIVE Z ${speedZ}`);   // Qで上昇
-      if (key === 'e') sendCommand(`DRIVE Z ${-speedZ}`);  // Eで下降
+      if (key === 'q') sendCommand(`DRIVE Z ${speedZ}`); 
+      if (key === 'e') sendCommand(`DRIVE Z ${-speedZ}`);
 
       if (key === ' ') {
         e.preventDefault(); 
         sendCommand("ARM 0"); 
       }
-      // 【変更箇所】 90度から70度へ
       if (e.key === 'Shift') {
         sendCommand("ARM 70"); 
       }
@@ -543,7 +555,6 @@
       if (key === 'q' || key === 'e') sendCommand(`DRIVE Z 0`);
     });
 
-    // --- ゲームパッド処理 ---
     let gamepadIndex = null;
     let lastJ1Speed = 0, lastJ2Speed = 0, lastZSpeed = 0; 
     let lastBtnA = false, lastBtnB = false;
@@ -564,7 +575,7 @@
       const pad = navigator.getGamepads()[gamepadIndex];
       if (pad) {
         const speedArm = Math.max(50, Number(speedEl.value) || 50);
-        const speedZ = Math.max(50, Number(speedZEl.value) || 50); // Z専用速度
+        const speedZ = Math.max(50, Number(speedZEl.value) || 50); 
         const deadzone = 0.2;
 
         let j1Speed = Math.abs(pad.axes[0]) > deadzone ? Math.round(pad.axes[0] * speedArm) : 0;
@@ -578,7 +589,6 @@
         const btnA = pad.buttons[0].pressed;
         const btnB = pad.buttons[1].pressed;
         if (btnA && !lastBtnA) sendCommand("ARM 0");
-        // 【変更箇所】 90度から70度へ
         if (btnB && !lastBtnB) sendCommand("ARM 70");
         lastBtnA = btnA;
         lastBtnB = btnB;
