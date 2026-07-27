@@ -499,7 +499,8 @@
     });
     
     document.querySelector("#closeArm").addEventListener("click", () => sendCommand("ARM 0"));
-    document.querySelector("#openArm").addEventListener("click", () => sendCommand("ARM 90"));
+    // 【変更箇所】 90度から70度へ
+    document.querySelector("#openArm").addEventListener("click", () => sendCommand("ARM 70"));
     
     document.querySelector("#sendCustom").addEventListener("click", () => {
       sendCommand(document.querySelector("#customCommand").value.trim());
@@ -528,8 +529,9 @@
         e.preventDefault(); 
         sendCommand("ARM 0"); 
       }
+      // 【変更箇所】 90度から70度へ
       if (e.key === 'Shift') {
-        sendCommand("ARM 90"); 
+        sendCommand("ARM 70"); 
       }
     });
 
@@ -576,7 +578,8 @@
         const btnA = pad.buttons[0].pressed;
         const btnB = pad.buttons[1].pressed;
         if (btnA && !lastBtnA) sendCommand("ARM 0");
-        if (btnB && !lastBtnB) sendCommand("ARM 90");
+        // 【変更箇所】 90度から70度へ
+        if (btnB && !lastBtnB) sendCommand("ARM 70");
         lastBtnA = btnA;
         lastBtnB = btnB;
       }
