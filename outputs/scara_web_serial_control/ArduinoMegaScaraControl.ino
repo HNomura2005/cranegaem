@@ -30,7 +30,7 @@ constexpr float HOMING_SPEED = -300.0; // 原点を探すときの速度（マ�
 
 constexpr long HOME_J1 = 0;
 constexpr long HOME_J2 = 0;
-constexpr int SAFE_SERVO_ANGLE = 90; 
+constexpr int SAFE_SERVO_ANGLE = 70; 
 
 // --- モーターオブジェクト ---
 AccelStepper arm1(AccelStepper::DRIVER, J1_STEP_PIN, J1_DIR_PIN);
