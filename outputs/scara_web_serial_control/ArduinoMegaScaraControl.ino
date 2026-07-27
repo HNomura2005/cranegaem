@@ -15,7 +15,7 @@ constexpr uint8_t Z_DIR_PIN = 32;
 // リミットスイッチ用のピンは削除
 
 constexpr uint8_t ENABLE_PIN = 16;
-constexpr uint8_t ARM_SERVO_PIN = 15;
+constexpr uint8_t ARM_SERVO_PIN = 13;
 
 // --- 動作設定 ---
 // アーム（J1, J2）用の設定
