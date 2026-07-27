@@ -4,8 +4,8 @@
 constexpr uint32_t BAUD_RATE = 115200;
 
 // --- ESP32 ピン設定 ---
-constexpr uint8_t J1_STEP_PIN = 25;
-constexpr uint8_t J1_DIR_PIN = 26;
+constexpr uint8_t J1_STEP_PIN = 26;
+constexpr uint8_t J1_DIR_PIN = 25;
 constexpr uint8_t J2_STEP_PIN = 27;
 constexpr uint8_t J2_DIR_PIN = 14;
 
