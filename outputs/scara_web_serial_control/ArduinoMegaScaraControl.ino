@@ -18,8 +18,14 @@ constexpr uint8_t ENABLE_PIN = 25;
 constexpr uint8_t ARM_SERVO_PIN = 13;
 
 // --- 動作設定 ---
-constexpr float MAX_SPEED = 900.0;
-constexpr float ACCELERATION = 600.0;
+// アーム（J1, J2）用の設定
+constexpr float ARM_MAX_SPEED = 900.0;
+constexpr float ARM_ACCELERATION = 600.0;
+
+// Z軸用の設定（ここでZ軸の速度を限界まで調整してください）
+constexpr float Z_MAX_SPEED = 2000.0;   
+constexpr float Z_ACCELERATION = 600.0; 
+
 constexpr float HOMING_SPEED = -300.0; // 原点を探すときの速度（マイナスだと下がる方向と仮定）
 
 constexpr long HOME_J1 = 0;
@@ -48,11 +54,6 @@ AccelStepper *axisFromName(const String &name) {
   if (name == "J2") return &arm2;
   if (name == "Z") return &zAxis;
   return nullptr; 
-}
-
-void configureAxis(AccelStepper &axis) {
-  axis.setMaxSpeed(MAX_SPEED);
-  axis.setAcceleration(ACCELERATION);
 }
 
 String nextToken(String &source) {
@@ -116,7 +117,7 @@ void stopAll() {
   zAxis.stop();
 }
 
-// Z軸の原点探し専用の関数を追加した
+// Z軸の原点探し専用の関数
 void homeZAxis() {
   Serial.println("Z axis homing started...");
   
@@ -140,7 +141,7 @@ void homeZAxis() {
   Serial.println("Z axis homing complete!");
 }
 
-// HOMEコマンドの動作を変更
+// HOMEコマンドの動作
 void home() {
   stopped = false;
   // 先にZ軸のホーミングを行う
@@ -231,7 +232,11 @@ void handleCommand(String commandLine) {
       return;
     }
     stopped = false;
-    speed = constrain(speed, -MAX_SPEED, MAX_SPEED);
+    
+    // 軸に合わせて速度上限を切り替える
+    float maxAllowedSpeed = (axisName == "Z") ? Z_MAX_SPEED : ARM_MAX_SPEED;
+    speed = constrain(speed, -maxAllowedSpeed, maxAllowedSpeed);
+    
     setDriveSpeed(axisName, speed);
     Serial.println(speed == 0 ? "OK drive stop" : "OK drive");
     return;
@@ -292,9 +297,15 @@ void setup() {
   armServo.attach(ARM_SERVO_PIN, 500, 2400);
   armServo.write(SAFE_SERVO_ANGLE);
 
-  configureAxis(arm1);
-  configureAxis(arm2);
-  configureAxis(zAxis);
+  // J1, J2にアーム用の速度を設定
+  arm1.setMaxSpeed(ARM_MAX_SPEED);
+  arm1.setAcceleration(ARM_ACCELERATION);
+  arm2.setMaxSpeed(ARM_MAX_SPEED);
+  arm2.setAcceleration(ARM_ACCELERATION);
+
+  // Z軸にZ専用の速度を設定
+  zAxis.setMaxSpeed(Z_MAX_SPEED);
+  zAxis.setAcceleration(Z_ACCELERATION);
   
   Serial.begin(BAUD_RATE);
   Serial.println("READY pingpong scara");
