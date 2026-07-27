@@ -81,7 +81,6 @@
       margin-bottom: 14px;
     }
 
-    /* ▼▼ ボタンの長押し干渉を完全に防ぐ設定 ▼▼ */
     button {
       min-height: 46px;
       border: 1px solid #a9b7c6;
@@ -96,7 +95,7 @@
       user-select: none;
       -webkit-user-select: none;
       -webkit-touch-callout: none;
-      touch-action: none; /* manipulationからnoneへ変更（スマホでのスクロール干渉を防ぐ） */
+      touch-action: none; 
     }
 
     button:hover:not(:disabled) {
@@ -133,6 +132,12 @@
       border-color: #4da8da;
       background: #e6f7ff;
       color: #005a8c;
+    }
+    
+    button.small {
+      min-height: 36px;
+      font-size: 14px;
+      padding: 0 8px;
     }
 
     .manual { display: grid; gap: 10px; }
@@ -267,11 +272,17 @@
         </div>
 
         <div class="panel">
-          <h2>アーム</h2>
+          <h2>アーム（サーボ）設定</h2>
           <div class="magnet">
-            <button class="primary" id="closeArm">掴む</button>
-            <button id="openArm">離す</button> 
+            <button class="primary" id="closeArm">掴む (0度)</button>
+            <button id="openArm">離す (70度)</button> 
           </div>
+          <!-- 【追加】微調整用UI -->
+          <div style="margin-top: 12px; margin-bottom: 8px; display: flex; gap: 8px;">
+            <button class="small" id="servoMinus" style="flex: 1;">-5度</button>
+            <button class="small" id="servoPlus" style="flex: 1;">+5度</button>
+          </div>
+          <button class="info" id="servoZero" style="width: 100%; font-size: 14px;">今の角度をアームの「0度」にする</button>
         </div>
         
         <div class="panel">
@@ -488,13 +499,10 @@
         sendCommand(`DRIVE ${button.dataset.axis} 0`);
       };
 
-      // ▼▼ スマホ等の長押し判定を確実にする ▼▼
       button.addEventListener("pointerdown", start);
       button.addEventListener("pointerup", stop);
       button.addEventListener("pointercancel", stop);
       button.addEventListener("pointerleave", stop);
-      
-      // スマホの長押しメニューを禁止
       button.addEventListener("contextmenu", (e) => e.preventDefault()); 
     });
 
@@ -508,7 +516,7 @@
     });
 
     document.querySelector("#zero").addEventListener("click", () => {
-      if (confirm("現在の位置を新しい初期位置（原点）として記憶しますか？")) {
+      if (confirm("現在のステッピングモーターの位置を新しい初期位置（原点）として記憶しますか？")) {
         sendCommand("ZERO");
         currentArm1 = 0;
         currentArm2 = 0;
@@ -517,8 +525,17 @@
       }
     });
     
+    // 【追加】サーボの操作系イベント
     document.querySelector("#closeArm").addEventListener("click", () => sendCommand("ARM 0"));
     document.querySelector("#openArm").addEventListener("click", () => sendCommand("ARM 70"));
+    
+    document.querySelector("#servoMinus").addEventListener("click", () => sendCommand("SERVO_ADD -5"));
+    document.querySelector("#servoPlus").addEventListener("click", () => sendCommand("SERVO_ADD 5"));
+    document.querySelector("#servoZero").addEventListener("click", () => {
+      if (confirm("現在のサーボ角度を『掴む（0度）』の基準に設定しますか？\n（設定後、『離す』ボタンはその基準から70度開いた場所になります）")) {
+        sendCommand("SERVO_ZERO");
+      }
+    });
     
     document.querySelector("#sendCustom").addEventListener("click", () => {
       sendCommand(document.querySelector("#customCommand").value.trim());
