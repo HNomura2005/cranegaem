@@ -12,21 +12,16 @@ constexpr uint8_t J2_DIR_PIN = 14;
 // Z軸（昇降用）
 constexpr uint8_t Z_STEP_PIN = 33; 
 constexpr uint8_t Z_DIR_PIN = 32;  
-// リミットスイッチ用のピンは削除
 
 constexpr uint8_t ENABLE_PIN = 16;
 constexpr uint8_t ARM_SERVO_PIN = 13;
 
 // --- 動作設定 ---
-// アーム（J1, J2）用の設定
 constexpr float ARM_MAX_SPEED = 900.0;
 constexpr float ARM_ACCELERATION = 600.0;
 
-// Z軸用の設定
 constexpr float Z_MAX_SPEED = 2000.0;   
 constexpr float Z_ACCELERATION = 600.0; 
-
-// リミットスイッチを使わないため、ホーミング速度の設定も削除
 
 constexpr long HOME_J1 = 0;
 constexpr long HOME_J2 = 0;
@@ -45,9 +40,18 @@ float arm1Speed = 0.0;
 float arm2Speed = 0.0;
 float zSpeed = 0.0;
 
+// サーボの0度をズラすための変数
+int servoOffset = 0;
+
 // --- 関数プロトタイプ ---
 void stopAll();
 void clearDriveSpeeds();
+
+// サーボを「設定した0度」を基準にして動かす専用関数
+void moveServo(int logicalAngle) {
+  int actualAngle = constrain(logicalAngle + servoOffset, 0, 180);
+  armServo.write(actualAngle);
+}
 
 AccelStepper *axisFromName(const String &name) {
   if (name == "J1") return &arm1;
@@ -117,13 +121,10 @@ void stopAll() {
   zAxis.stop();
 }
 
-// HOMEコマンドの動作
 void home() {
   stopped = false;
-  
-  // Z軸、肩、肘をすべて記録されている座標「0」に戻す
   moveTo(HOME_J1, HOME_J2, 0); 
-  armServo.write(SAFE_SERVO_ANGLE);
+  moveServo(SAFE_SERVO_ANGLE);
 }
 
 void zeroAll() {
@@ -207,7 +208,6 @@ void handleCommand(String commandLine) {
     }
     stopped = false;
     
-    // 軸に合わせて速度上限を切り替える
     float maxAllowedSpeed = (axisName == "Z") ? Z_MAX_SPEED : ARM_MAX_SPEED;
     speed = constrain(speed, -maxAllowedSpeed, maxAllowedSpeed);
     
@@ -227,9 +227,25 @@ void handleCommand(String commandLine) {
 
   if (command == "ARM") {
     int angle = commandLine.toInt();
-    angle = constrain(angle, 0, 180); 
-    armServo.write(angle);
+    moveServo(angle); // 基準のズレを計算して動かす
     Serial.println("OK arm moved");
+    return;
+  }
+
+  // 【追加】サーボの微調整コマンド
+  if (command == "SERVO_ADD") {
+    int diff = commandLine.toInt();
+    int currentActual = armServo.read();
+    int newActual = constrain(currentActual + diff, 0, 180);
+    armServo.write(newActual);
+    Serial.println("OK servo adjusted");
+    return;
+  }
+
+  // 【追加】現在の物理角度を「0」として記憶するコマンド
+  if (command == "SERVO_ZERO") {
+    servoOffset = armServo.read();
+    Serial.println("OK servo zero set");
     return;
   }
 
@@ -266,15 +282,12 @@ void setup() {
   ESP32PWM::allocateTimer(0);
   armServo.setPeriodHertz(50);
   armServo.attach(ARM_SERVO_PIN, 500, 2400);
-  armServo.write(SAFE_SERVO_ANGLE);
+  moveServo(SAFE_SERVO_ANGLE);
 
-  // J1, J2にアーム用の速度を設定
   arm1.setMaxSpeed(ARM_MAX_SPEED);
   arm1.setAcceleration(ARM_ACCELERATION);
   arm2.setMaxSpeed(ARM_MAX_SPEED);
   arm2.setAcceleration(ARM_ACCELERATION);
-
-  // Z軸にZ専用の速度を設定
   zAxis.setMaxSpeed(Z_MAX_SPEED);
   zAxis.setAcceleration(Z_ACCELERATION);
   
