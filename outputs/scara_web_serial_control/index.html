@@ -227,10 +227,18 @@
         <div class="panel">
           <h2>クレーン手動操作</h2>
           <div class="manual">
-            <div class="field">
-              <label for="speed">移動速度</label>
-              <input id="speed" type="number" value="450" min="50" max="1500" step="50">
+            <!-- 速度設定をアームとZ軸で分離 -->
+            <div style="display: flex; gap: 20px; margin-bottom: 8px;">
+              <div class="field">
+                <label for="speed">アーム速度</label>
+                <input id="speed" type="number" value="450" min="50" max="1500" step="50">
+              </div>
+              <div class="field">
+                <label for="speedZ">Z軸昇降速度</label>
+                <input id="speedZ" type="number" value="1500" min="50" max="3000" step="50">
+              </div>
             </div>
+
             <div class="axis">
               <label>肩</label>
               <button data-axis="J1" data-dir="-1">左回転</button>
@@ -241,7 +249,6 @@
               <button data-axis="J2" data-dir="-1">縮む</button>
               <button data-axis="J2" data-dir="1">伸びる</button>
             </div>
-            <!-- Z軸をステッピングモーター用のボタンに変更 -->
             <div class="axis">
               <label>高さ</label>
               <button data-axis="Z" data-dir="-1">下がる</button>
@@ -318,6 +325,7 @@
     const statusEl = document.querySelector("#status");
     const logEl = document.querySelector("#log");
     const speedEl = document.querySelector("#speed");
+    const speedZEl = document.querySelector("#speedZ"); // Z軸用の速度入力を追加
 
     // レーダー用の変数
     const canvas = document.getElementById("radarCanvas");
@@ -458,13 +466,16 @@
     });
 
     // --- 各モーター（J1, J2, Z）の画面ボタン制御 ---
-    // Z軸ボタンも自動的にここで処理されるようになりました
     document.querySelectorAll("[data-axis]").forEach((button) => {
       const start = (event) => {
         event.preventDefault();
-        const speed = Math.max(50, Number(speedEl.value) || 50);
+        const axis = button.dataset.axis;
+        // 操作する軸がZならZ用の入力値、それ以外はアーム用の入力値を使用
+        const targetSpeedEl = (axis === "Z") ? speedZEl : speedEl;
+        const speed = Math.max(50, Number(targetSpeedEl.value) || 50);
+        
         const signedSpeed = speed * Number(button.dataset.dir);
-        sendCommand(`DRIVE ${button.dataset.axis} ${signedSpeed}`);
+        sendCommand(`DRIVE ${axis} ${signedSpeed}`);
       };
       
       const stop = (event) => {
@@ -502,16 +513,16 @@
       // コマンド入力欄にフォーカスがある時はキーボード操縦を無効化
       if (document.activeElement.tagName === "INPUT") return;
 
-      const speed = Math.max(50, Number(speedEl.value) || 50);
+      const speedArm = Math.max(50, Number(speedEl.value) || 50);
+      const speedZ = Math.max(50, Number(speedZEl.value) || 50); // Z専用速度を取得
 
-      if (key === 'a') sendCommand(`DRIVE J1 ${-speed}`);
-      if (key === 'd') sendCommand(`DRIVE J1 ${speed}`);
-      if (key === 'w') sendCommand(`DRIVE J2 ${speed}`);
-      if (key === 's') sendCommand(`DRIVE J2 ${-speed}`);
+      if (key === 'a') sendCommand(`DRIVE J1 ${-speedArm}`);
+      if (key === 'd') sendCommand(`DRIVE J1 ${speedArm}`);
+      if (key === 'w') sendCommand(`DRIVE J2 ${speedArm}`);
+      if (key === 's') sendCommand(`DRIVE J2 ${-speedArm}`);
       
-      // QとEを Z軸の連続移動（DRIVE Z）に変更しました
-      if (key === 'q') sendCommand(`DRIVE Z ${speed}`);   // Qで上昇
-      if (key === 'e') sendCommand(`DRIVE Z ${-speed}`);  // Eで下降
+      if (key === 'q') sendCommand(`DRIVE Z ${speedZ}`);   // Qで上昇
+      if (key === 'e') sendCommand(`DRIVE Z ${-speedZ}`);  // Eで下降
 
       if (key === ' ') {
         e.preventDefault(); 
@@ -527,13 +538,12 @@
 
       if (key === 'a' || key === 'd') sendCommand(`DRIVE J1 0`);
       if (key === 'w' || key === 's') sendCommand(`DRIVE J2 0`);
-      // QやEを離した時にZ軸を停止させます
       if (key === 'q' || key === 'e') sendCommand(`DRIVE Z 0`);
     });
 
     // --- ゲームパッド処理 ---
     let gamepadIndex = null;
-    let lastJ1Speed = 0, lastJ2Speed = 0, lastZSpeed = 0; //  Z軸の速度履歴を追加
+    let lastJ1Speed = 0, lastJ2Speed = 0, lastZSpeed = 0; 
     let lastBtnA = false, lastBtnB = false;
 
     window.addEventListener("gamepadconnected", (e) => {
@@ -551,13 +561,13 @@
       if (gamepadIndex === null) return;
       const pad = navigator.getGamepads()[gamepadIndex];
       if (pad) {
-        const speed = Math.max(50, Number(speedEl.value) || 50);
+        const speedArm = Math.max(50, Number(speedEl.value) || 50);
+        const speedZ = Math.max(50, Number(speedZEl.value) || 50); // Z専用速度
         const deadzone = 0.2;
 
-        let j1Speed = Math.abs(pad.axes[0]) > deadzone ? Math.round(pad.axes[0] * speed) : 0;
-        let j2Speed = Math.abs(pad.axes[1]) > deadzone ? Math.round(-pad.axes[1] * speed) : 0;
-        // スティックの入力を DRIVE Z コマンドに変換
-        let zSpeed = Math.abs(pad.axes[3]) > deadzone ? Math.round(-pad.axes[3] * speed) : 0;
+        let j1Speed = Math.abs(pad.axes[0]) > deadzone ? Math.round(pad.axes[0] * speedArm) : 0;
+        let j2Speed = Math.abs(pad.axes[1]) > deadzone ? Math.round(-pad.axes[1] * speedArm) : 0;
+        let zSpeed = Math.abs(pad.axes[3]) > deadzone ? Math.round(-pad.axes[3] * speedZ) : 0;
 
         if (j1Speed !== lastJ1Speed) { sendCommand(`DRIVE J1 ${j1Speed}`); lastJ1Speed = j1Speed; }
         if (j2Speed !== lastJ2Speed) { sendCommand(`DRIVE J2 ${j2Speed}`); lastJ2Speed = j2Speed; }
