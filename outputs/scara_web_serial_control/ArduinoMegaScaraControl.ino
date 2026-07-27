@@ -12,7 +12,7 @@ constexpr uint8_t J2_DIR_PIN = 19;
 // Z軸（昇降用）
 constexpr uint8_t Z_STEP_PIN = 26; 
 constexpr uint8_t Z_DIR_PIN = 33;  
-constexpr uint8_t Z_LIMIT_PIN = 32; // Z軸のリミットスイッチ用ピン
+// リミットスイッチ用のピンは削除しました
 
 constexpr uint8_t ENABLE_PIN = 25;
 constexpr uint8_t ARM_SERVO_PIN = 13;
@@ -22,11 +22,11 @@ constexpr uint8_t ARM_SERVO_PIN = 13;
 constexpr float ARM_MAX_SPEED = 900.0;
 constexpr float ARM_ACCELERATION = 600.0;
 
-// Z軸用の設定（ここでZ軸の速度を限界まで調整してください）
+// Z軸用の設定
 constexpr float Z_MAX_SPEED = 2000.0;   
 constexpr float Z_ACCELERATION = 600.0; 
 
-constexpr float HOMING_SPEED = -300.0; // 原点を探すときの速度（マイナスだと下がる方向と仮定）
+// リミットスイッチを使わないため、ホーミング速度の設定も削除
 
 constexpr long HOME_J1 = 0;
 constexpr long HOME_J2 = 0;
@@ -117,37 +117,11 @@ void stopAll() {
   zAxis.stop();
 }
 
-// Z軸の原点探し専用の関数
-void homeZAxis() {
-  Serial.println("Z axis homing started...");
-  
-  // スイッチが押されるまで、一定の速度で動き続ける
-  zAxis.setSpeed(HOMING_SPEED);
-  while (digitalRead(Z_LIMIT_PIN) == HIGH) {
-    zAxis.runSpeed(); // 加減速なしで一定速度で動く
-  }
-  
-  // スイッチが押されたら即停止
-  zAxis.stop();
-  
-  // 少しだけ逆に戻して、スイッチから離れる（スイッチの保護と正確な位置決めのため）
-  zAxis.move(50); // 50ステップ戻る（方向が逆の場合は -50 にしろ）
-  while (zAxis.distanceToGo() != 0) {
-    zAxis.run();
-  }
-  
-  // 今いる場所を「原点」として記憶する
-  zAxis.setCurrentPosition(0);
-  Serial.println("Z axis homing complete!");
-}
-
 // HOMEコマンドの動作
 void home() {
   stopped = false;
-  // 先にZ軸のホーミングを行う
-  homeZAxis();
   
-  // その後、アームを安全な位置に戻す
+  // Z軸、肩、肘をすべて記録されている座標「0」に戻す
   moveTo(HOME_J1, HOME_J2, 0); 
   armServo.write(SAFE_SERVO_ANGLE);
 }
@@ -288,9 +262,6 @@ void handleCommand(String commandLine) {
 void setup() {
   pinMode(ENABLE_PIN, OUTPUT);
   digitalWrite(ENABLE_PIN, LOW);
-
-  // リミットスイッチのピンを「内部プルアップ付きの入力」として設定
-  pinMode(Z_LIMIT_PIN, INPUT_PULLUP); 
 
   ESP32PWM::allocateTimer(0);
   armServo.setPeriodHertz(50);
