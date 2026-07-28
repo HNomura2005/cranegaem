@@ -29,7 +29,7 @@ constexpr float Z_ACCELERATION = 100.0;
 
 constexpr long HOME_J1 = 0;
 constexpr long HOME_J2 = 0;
-constexpr int SAFE_SERVO_ANGLE = 70; 
+constexpr int SAFE_SERVO_ANGLE = 170; 
 
 AccelStepper arm1(AccelStepper::DRIVER, J1_STEP_PIN, DUMMY_DIR_J1);
 AccelStepper arm2(AccelStepper::DRIVER, J2_STEP_PIN, DUMMY_DIR_J2);
@@ -137,9 +137,7 @@ void zeroAll() {
   zAxis.setCurrentPosition(0);
 }
 
-// ==========================================
-// ★変更箇所：排他制御 ＋ 無制限回転のための位置リセット処理
-// ==========================================
+
 void setDriveSpeed(const String &axisName, float speed) {
   if (axisName == "J1") {
     // 排他制御：J2が動いている間はJ1の動作を無視
