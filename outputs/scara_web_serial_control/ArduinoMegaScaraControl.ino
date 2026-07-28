@@ -9,6 +9,7 @@ constexpr uint8_t J1_DIR_PIN = 26;
 constexpr uint8_t J2_STEP_PIN = 27;
 constexpr uint8_t J2_DIR_PIN = 14;
 
+// Z軸（昇降用）
 constexpr uint8_t Z_STEP_PIN = 33; 
 constexpr uint8_t Z_DIR_PIN = 32;  
 
@@ -18,6 +19,7 @@ constexpr uint8_t ARM_SERVO_PIN = 13;
 // --- 動作設定 ---
 constexpr float ARM_MAX_SPEED = 900.0;
 constexpr float ARM_ACCELERATION = 600.0;
+
 constexpr float Z_MAX_SPEED = 2000.0;   
 constexpr float Z_ACCELERATION = 600.0; 
 
@@ -25,30 +27,19 @@ constexpr long HOME_J1 = 0;
 constexpr long HOME_J2 = 0;
 constexpr int SAFE_SERVO_ANGLE = 70; 
 
-// 正しいピン設定に戻しました
+// --- モーターオブジェクト ---
 AccelStepper arm1(AccelStepper::DRIVER, J1_STEP_PIN, J1_DIR_PIN);
 AccelStepper arm2(AccelStepper::DRIVER, J2_STEP_PIN, J2_DIR_PIN);
 AccelStepper zAxis(AccelStepper::DRIVER, Z_STEP_PIN, Z_DIR_PIN);
 Servo armServo;
 
+// --- 状態管理の変数 ---
 String line;
 bool stopped = false;
 int servoOffset = 0; 
 
-// 手動操作用の速度保持変数
-float arm1DriveSpeed = 0.0;
-float arm2DriveSpeed = 0.0;
-float zDriveSpeed = 0.0;
-
-void stopAll() {
-  stopped = true;
-  arm1DriveSpeed = 0.0;
-  arm2DriveSpeed = 0.0;
-  zDriveSpeed = 0.0;
-  arm1.stop();
-  arm2.stop();
-  zAxis.stop();
-}
+// --- 関数プロトタイプ ---
+void stopAll();
 
 void moveServo(int logicalAngle) {
   int actualAngle = constrain(logicalAngle + servoOffset, 0, 180);
@@ -108,13 +99,17 @@ void runUntilArrived() {
 
 void moveTo(long j1, long j2, long z) {
   if (stopped) return;
-  arm1DriveSpeed = 0.0;
-  arm2DriveSpeed = 0.0;
-  zDriveSpeed = 0.0;
   arm1.moveTo(j1);
   arm2.moveTo(j2);
   zAxis.moveTo(z);
   runUntilArrived();
+}
+
+void stopAll() {
+  stopped = true;
+  arm1.stop();
+  arm2.stop();
+  zAxis.stop();
 }
 
 void home() {
@@ -127,6 +122,22 @@ void zeroAll() {
   arm1.setCurrentPosition(0);
   arm2.setCurrentPosition(0);
   zAxis.setCurrentPosition(0);
+}
+
+void setDriveSpeed(const String &axisName, float speed) {
+  AccelStepper *axis = axisFromName(axisName);
+  if (axis == nullptr) return;
+
+  if (speed == 0.0) {
+    axis->stop();
+  } else {
+    axis->setMaxSpeed(abs(speed));
+    if (speed > 0) {
+      axis->move(10000000);
+    } else {
+      axis->move(-10000000);
+    }
+  }
 }
 
 void printStatus() {
@@ -153,8 +164,10 @@ void handleCommand(String commandLine) {
     axisName.toUpperCase();
     long steps = commandLine.toInt();
     AccelStepper *axis = axisFromName(axisName);
-    if (axis == nullptr) return;
-    
+    if (axis == nullptr) {
+      Serial.println("ERR unknown axis");
+      return;
+    }
     stopped = false;
     axis->move(steps);
     Serial.println("OK jog");
@@ -165,15 +178,16 @@ void handleCommand(String commandLine) {
     String axisName = nextToken(commandLine);
     axisName.toUpperCase();
     float speed = commandLine.toFloat();
-    
+    if (axisFromName(axisName) == nullptr) {
+      Serial.println("ERR unknown axis");
+      return;
+    }
     stopped = false;
+    
     float maxAllowedSpeed = (axisName == "Z") ? Z_MAX_SPEED : ARM_MAX_SPEED;
     speed = constrain(speed, -maxAllowedSpeed, maxAllowedSpeed);
     
-    if (axisName == "J1") arm1DriveSpeed = speed;
-    else if (axisName == "J2") arm2DriveSpeed = speed;
-    else if (axisName == "Z") zDriveSpeed = speed;
-
+    setDriveSpeed(axisName, speed);
     Serial.println(speed == 0 ? "OK drive stop" : "OK drive");
     return;
   }
@@ -230,6 +244,8 @@ void handleCommand(String commandLine) {
     printStatus();
     return;
   }
+  
+  Serial.println("ERR unknown command");
 }
 
 void setup() {
@@ -240,6 +256,12 @@ void setup() {
   armServo.setPeriodHertz(50);
   armServo.attach(ARM_SERVO_PIN, 500, 2400);
   moveServo(SAFE_SERVO_ANGLE);
+
+  // ★★★今回の最大原因を解決する魔法の3行！★★★
+  // ESP32の信号が速すぎてモータードライバが方向転換を見落とすのを防ぎます
+  arm1.setMinPulseWidth(20);
+  arm2.setMinPulseWidth(20);
+  zAxis.setMinPulseWidth(20);
 
   arm1.setMaxSpeed(ARM_MAX_SPEED);
   arm1.setAcceleration(ARM_ACCELERATION);
@@ -264,26 +286,8 @@ void loop() {
   }
   
   if (!stopped) {
-    // 速度が0じゃない時は速度指定モード（runSpeed）、0の時は位置指定モード（run）で安全に回す
-    if (arm1DriveSpeed != 0.0) {
-      arm1.setSpeed(arm1DriveSpeed);
-      arm1.runSpeed();
-    } else {
-      arm1.run();
-    }
-    
-    if (arm2DriveSpeed != 0.0) {
-      arm2.setSpeed(arm2DriveSpeed);
-      arm2.runSpeed();
-    } else {
-      arm2.run();
-    }
-
-    if (zDriveSpeed != 0.0) {
-      zAxis.setSpeed(zDriveSpeed);
-      zAxis.runSpeed();
-    } else {
-      zAxis.run();
-    }
+    arm1.run();
+    arm2.run();
+    zAxis.run();
   }
 }
