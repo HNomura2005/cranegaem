@@ -51,6 +51,7 @@
       font-size: 14px;
       font-weight: 700;
       text-align: center;
+      transition: all 0.3s ease; /* 色変化を滑らかにするアニメーション */
     }
 
     .toolbar,
@@ -232,6 +233,7 @@
 
     <section class="toolbar">
       <button class="primary" id="connect">Arduinoに接続</button>
+      <button id="disconnect" disabled>切断</button> <!-- 追加機能3: 切断ボタン -->
       <button class="danger" id="stop">全停止</button>
       <button class="warn" id="home">初期位置へ戻る</button>
       <button class="info" id="zero">ここを原点にする</button>
@@ -277,11 +279,19 @@
             <button class="primary" id="closeArm">掴む (0度)</button>
             <button id="openArm">離す (70度)</button> 
           </div>
-          <!-- 【追加】微調整用UI -->
+          
           <div style="margin-top: 12px; margin-bottom: 8px; display: flex; gap: 8px;">
             <button class="small" id="servoMinus" style="flex: 1;">-5度</button>
             <button class="small" id="servoPlus" style="flex: 1;">+5度</button>
           </div>
+
+          <!-- 追加機能5: サーボ角度の直感的なスライダー -->
+          <div style="margin-top: 12px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+            <label style="font-size: 14px;">角度指定:</label>
+            <input type="range" id="servoSlider" min="0" max="180" value="70" style="flex: 1;">
+            <span id="servoValue" style="width: 40px; font-family: monospace; font-size: 15px; font-weight: bold;">70°</span>
+          </div>
+
           <button class="info" id="servoZero" style="width: 100%; font-size: 14px;">今の角度をアームの「0度」にする</button>
         </div>
         
@@ -475,11 +485,24 @@
         textEncoder.readable.pipeTo(port.writable).catch(() => {});
         writer = textEncoder.writable.getWriter();
 
-        statusEl.textContent = "コネクト中";
+        // 追加機能3: 接続成功時のステータス色変更・切断ボタン有効化
+        statusEl.textContent = "接続済み";
+        statusEl.style.backgroundColor = "#e6fffa"; 
+        statusEl.style.borderColor = "#38b2ac";
+        document.getElementById("connect").disabled = true;
+        document.getElementById("disconnect").disabled = false;
+
         log("Arduinoに接続しました");
         readLoop();
       } catch (e) {
         log("接続がキャンセルされたか、エラーが発生した");
+      }
+    });
+
+    // 追加機能3: 切断ボタンの処理（確実なリセットのため画面リロード）
+    document.querySelector("#disconnect").addEventListener("click", () => {
+      if (confirm("通信を切断し、コントローラーをリセットしますか？")) {
+        location.reload();
       }
     });
 
@@ -525,12 +548,46 @@
       }
     });
     
-    // 【追加】サーボの操作系イベント
-    document.querySelector("#closeArm").addEventListener("click", () => sendCommand("ARM 0"));
-    document.querySelector("#openArm").addEventListener("click", () => sendCommand("ARM 70"));
+    // アーム（サーボ）の操作系イベント
+    document.querySelector("#closeArm").addEventListener("click", () => {
+      sendCommand("ARM 0");
+      servoSlider.value = 0;
+      servoValue.textContent = "0°";
+    });
+    document.querySelector("#openArm").addEventListener("click", () => {
+      sendCommand("ARM 70");
+      servoSlider.value = 70;
+      servoValue.textContent = "70°";
+    });
     
-    document.querySelector("#servoMinus").addEventListener("click", () => sendCommand("SERVO_ADD -5"));
-    document.querySelector("#servoPlus").addEventListener("click", () => sendCommand("SERVO_ADD 5"));
+    document.querySelector("#servoMinus").addEventListener("click", () => {
+      sendCommand("SERVO_ADD -5");
+      let currentVal = parseInt(servoSlider.value) - 5;
+      if(currentVal < 0) currentVal = 0;
+      servoSlider.value = currentVal;
+      servoValue.textContent = currentVal + "°";
+    });
+    document.querySelector("#servoPlus").addEventListener("click", () => {
+      sendCommand("SERVO_ADD 5");
+      let currentVal = parseInt(servoSlider.value) + 5;
+      if(currentVal > 180) currentVal = 180;
+      servoSlider.value = currentVal;
+      servoValue.textContent = currentVal + "°";
+    });
+
+    // 追加機能5: サーボスライダーの処理
+    const servoSlider = document.querySelector("#servoSlider");
+    const servoValue = document.querySelector("#servoValue");
+
+    // スライダーを動かしている最中は数値だけ更新
+    servoSlider.addEventListener("input", (e) => {
+      servoValue.textContent = e.target.value + "°";
+    });
+    // スライダーから指を離した時にコマンド送信
+    servoSlider.addEventListener("change", (e) => {
+      sendCommand(`ARM ${e.target.value}`);
+    });
+
     document.querySelector("#servoZero").addEventListener("click", () => {
       if (confirm("現在のサーボ角度を『掴む（0度）』の基準に設定しますか？\n（設定後、『離す』ボタンはその基準から70度開いた場所になります）")) {
         sendCommand("SERVO_ZERO");
@@ -561,9 +618,13 @@
       if (key === ' ') {
         e.preventDefault(); 
         sendCommand("ARM 0"); 
+        servoSlider.value = 0;
+        servoValue.textContent = "0°";
       }
       if (e.key === 'Shift') {
         sendCommand("ARM 70"); 
+        servoSlider.value = 70;
+        servoValue.textContent = "70°";
       }
     });
 
@@ -608,8 +669,16 @@
 
         const btnA = pad.buttons[0].pressed;
         const btnB = pad.buttons[1].pressed;
-        if (btnA && !lastBtnA) sendCommand("ARM 0");
-        if (btnB && !lastBtnB) sendCommand("ARM 70");
+        if (btnA && !lastBtnA) {
+          sendCommand("ARM 0");
+          servoSlider.value = 0;
+          servoValue.textContent = "0°";
+        }
+        if (btnB && !lastBtnB) {
+          sendCommand("ARM 70");
+          servoSlider.value = 70;
+          servoValue.textContent = "70°";
+        }
         lastBtnA = btnA;
         lastBtnB = btnB;
       }
