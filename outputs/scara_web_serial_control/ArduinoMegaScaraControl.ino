@@ -36,12 +36,11 @@ Servo armServo;
 // --- 状態管理の変数 ---
 String line;
 bool stopped = false;
-int servoOffset = 0; // サーボの0度をズラすための変数
+int servoOffset = 0; 
 
 // --- 関数プロトタイプ ---
 void stopAll();
 
-// サーボを「設定した0度」を基準にして動かす専用関数
 void moveServo(int logicalAngle) {
   int actualAngle = constrain(logicalAngle + servoOffset, 0, 180);
   armServo.write(actualAngle);
@@ -125,19 +124,18 @@ void zeroAll() {
   zAxis.setCurrentPosition(0);
 }
 
-// 【修正箇所】バグの原因だった「runSpeed()用の計算」を完全撤廃し、安全なmove()に統一
 void setDriveSpeed(const String &axisName, float speed) {
   AccelStepper *axis = axisFromName(axisName);
   if (axis == nullptr) return;
 
   if (speed == 0.0) {
-    axis->stop(); // 速度0なら滑らかに停止する
+    axis->stop();
   } else {
-    axis->setMaxSpeed(abs(speed)); // 画面から送られた速度をセット
+    axis->setMaxSpeed(abs(speed));
     if (speed > 0) {
-      axis->move(10000000); // 押している間、プラス方向へずっと進む目標を設定
+      axis->move(10000000);
     } else {
-      axis->move(-10000000); // 押している間、マイナス方向へずっと進む目標を設定
+      axis->move(-10000000);
     }
   }
 }
@@ -259,6 +257,12 @@ void setup() {
   armServo.attach(ARM_SERVO_PIN, 500, 2400);
   moveServo(SAFE_SERVO_ANGLE);
 
+  // ★★★今回の最大原因を解決する魔法の3行！★★★
+  // ESP32の信号が速すぎてモータードライバが方向転換を見落とすのを防ぎます
+  arm1.setMinPulseWidth(20);
+  arm2.setMinPulseWidth(20);
+  zAxis.setMinPulseWidth(20);
+
   arm1.setMaxSpeed(ARM_MAX_SPEED);
   arm1.setAcceleration(ARM_ACCELERATION);
   arm2.setMaxSpeed(ARM_MAX_SPEED);
@@ -270,7 +274,6 @@ void setup() {
   Serial.println("READY pingpong scara");
 }
 
-// 【修正箇所】すべて純粋な「run()」関数のみで動くように統一しました
 void loop() {
   while (Serial.available() > 0) {
     char c = static_cast<char>(Serial.read());
