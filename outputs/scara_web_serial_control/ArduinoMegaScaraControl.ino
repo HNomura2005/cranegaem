@@ -36,16 +36,10 @@ Servo armServo;
 // --- 状態管理の変数 ---
 String line;
 bool stopped = false;
-float arm1Speed = 0.0;
-float arm2Speed = 0.0;
-float zSpeed = 0.0;
-
-// サーボの0度をズラすための変数
-int servoOffset = 0;
+int servoOffset = 0; // サーボの0度をズラすための変数
 
 // --- 関数プロトタイプ ---
 void stopAll();
-void clearDriveSpeeds();
 
 // サーボを「設定した0度」を基準にして動かす専用関数
 void moveServo(int logicalAngle) {
@@ -106,7 +100,6 @@ void runUntilArrived() {
 
 void moveTo(long j1, long j2, long z) {
   if (stopped) return;
-  clearDriveSpeeds();
   arm1.moveTo(j1);
   arm2.moveTo(j2);
   zAxis.moveTo(z);
@@ -115,7 +108,6 @@ void moveTo(long j1, long j2, long z) {
 
 void stopAll() {
   stopped = true;
-  clearDriveSpeeds();
   arm1.stop();
   arm2.stop();
   zAxis.stop();
@@ -133,33 +125,20 @@ void zeroAll() {
   zAxis.setCurrentPosition(0);
 }
 
-void clearDriveSpeeds() {
-  arm1Speed = 0.0;
-  arm2Speed = 0.0;
-  zSpeed = 0.0;
-  arm1.setSpeed(0.0);
-  arm2.setSpeed(0.0);
-  zAxis.setSpeed(0.0);
-}
-
+// 【修正箇所】バグの原因だった「runSpeed()用の計算」を完全撤廃し、安全なmove()に統一
 void setDriveSpeed(const String &axisName, float speed) {
-  if (axisName == "J1") {
-    arm1Speed = speed;
-    arm1.setSpeed(speed);
-    if (speed == 0.0) arm1.moveTo(arm1.currentPosition()); 
-    return;
-  }
-  if (axisName == "J2") {
-    arm2Speed = speed;
-    arm2.setSpeed(speed);
-    if (speed == 0.0) arm2.moveTo(arm2.currentPosition());
-    return;
-  }
-  if (axisName == "Z") {
-    zSpeed = speed;
-    zAxis.setSpeed(speed);
-    if (speed == 0.0) zAxis.moveTo(zAxis.currentPosition());
-    return;
+  AccelStepper *axis = axisFromName(axisName);
+  if (axis == nullptr) return;
+
+  if (speed == 0.0) {
+    axis->stop(); // 速度0なら滑らかに停止する
+  } else {
+    axis->setMaxSpeed(abs(speed)); // 画面から送られた速度をセット
+    if (speed > 0) {
+      axis->move(10000000); // 押している間、プラス方向へずっと進む目標を設定
+    } else {
+      axis->move(-10000000); // 押している間、マイナス方向へずっと進む目標を設定
+    }
   }
 }
 
@@ -192,7 +171,6 @@ void handleCommand(String commandLine) {
       return;
     }
     stopped = false;
-    clearDriveSpeeds();
     axis->move(steps);
     Serial.println("OK jog");
     return;
@@ -219,7 +197,6 @@ void handleCommand(String commandLine) {
   if (command == "Z") {
     long position = commandLine.toInt();
     stopped = false;
-    clearDriveSpeeds();
     zAxis.moveTo(position);
     Serial.println("OK Z move");
     return;
@@ -227,12 +204,11 @@ void handleCommand(String commandLine) {
 
   if (command == "ARM") {
     int angle = commandLine.toInt();
-    moveServo(angle); // 基準のズレを計算して動かす
+    moveServo(angle);
     Serial.println("OK arm moved");
     return;
   }
 
-  // 【追加】サーボの微調整コマンド
   if (command == "SERVO_ADD") {
     int diff = commandLine.toInt();
     int currentActual = armServo.read();
@@ -242,7 +218,6 @@ void handleCommand(String commandLine) {
     return;
   }
 
-  // 【追加】現在の物理角度を「0」として記憶するコマンド
   if (command == "SERVO_ZERO") {
     servoOffset = armServo.read();
     Serial.println("OK servo zero set");
@@ -295,6 +270,7 @@ void setup() {
   Serial.println("READY pingpong scara");
 }
 
+// 【修正箇所】すべて純粋な「run()」関数のみで動くように統一しました
 void loop() {
   while (Serial.available() > 0) {
     char c = static_cast<char>(Serial.read());
@@ -307,13 +283,8 @@ void loop() {
   }
   
   if (!stopped) {
-    if (arm1Speed != 0.0) arm1.runSpeed();
-    else arm1.run();
-    
-    if (arm2Speed != 0.0) arm2.runSpeed();
-    else arm2.run();
-
-    if (zSpeed != 0.0) zAxis.runSpeed();
-    else zAxis.run();
+    arm1.run();
+    arm2.run();
+    zAxis.run();
   }
 }
