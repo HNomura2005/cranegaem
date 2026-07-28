@@ -3,7 +3,7 @@
 
 constexpr uint32_t BAUD_RATE = 115200;
 
-// --- ESP32 ピン設定 ---
+// --- ESP32 本物のピン設定 ---
 constexpr uint8_t J1_STEP_PIN = 25;
 constexpr uint8_t J1_DIR_PIN = 26;
 constexpr uint8_t J2_STEP_PIN = 27;
@@ -15,6 +15,12 @@ constexpr uint8_t Z_DIR_PIN = 32;
 constexpr uint8_t ENABLE_PIN = 16;
 constexpr uint8_t ARM_SERVO_PIN = 13;
 
+// --- ★秘密兵器：ダミーDIRピン（ライブラリを騙す用） ---
+// ESP32の使っていないピンを割り当てて、ライブラリの誤作動を隔離します
+constexpr uint8_t DUMMY_DIR_J1 = 4;
+constexpr uint8_t DUMMY_DIR_J2 = 5;
+constexpr uint8_t DUMMY_DIR_Z = 18;
+
 // --- 動作設定 ---
 constexpr float ARM_MAX_SPEED = 900.0;
 constexpr float ARM_ACCELERATION = 600.0;
@@ -25,29 +31,25 @@ constexpr long HOME_J1 = 0;
 constexpr long HOME_J2 = 0;
 constexpr int SAFE_SERVO_ANGLE = 70; 
 
-AccelStepper arm1(AccelStepper::DRIVER, J1_STEP_PIN, J1_DIR_PIN);
-AccelStepper arm2(AccelStepper::DRIVER, J2_STEP_PIN, J2_DIR_PIN);
-AccelStepper zAxis(AccelStepper::DRIVER, Z_STEP_PIN, Z_DIR_PIN);
+// ★ライブラリにはダミーピンを渡して、STEPピンだけをパルスさせます
+AccelStepper arm1(AccelStepper::DRIVER, J1_STEP_PIN, DUMMY_DIR_J1);
+AccelStepper arm2(AccelStepper::DRIVER, J2_STEP_PIN, DUMMY_DIR_J2);
+AccelStepper zAxis(AccelStepper::DRIVER, Z_STEP_PIN, DUMMY_DIR_Z);
 Servo armServo;
 
 String line;
 bool stopped = false;
 int servoOffset = 0; 
 
-// --- 手動操作（DRIVE）用の変数 ---
-float driveSpeedJ1 = 0.0;
-float driveSpeedJ2 = 0.0;
-float driveSpeedZ = 0.0;
-
-unsigned long lastStepJ1 = 0;
-unsigned long lastStepJ2 = 0;
-unsigned long lastStepZ = 0;
+float arm1DriveSpeed = 0.0;
+float arm2DriveSpeed = 0.0;
+float zDriveSpeed = 0.0;
 
 void stopAll() {
   stopped = true;
-  driveSpeedJ1 = 0.0;
-  driveSpeedJ2 = 0.0;
-  driveSpeedZ = 0.0;
+  arm1DriveSpeed = 0.0;
+  arm2DriveSpeed = 0.0;
+  zDriveSpeed = 0.0;
   arm1.stop();
   arm2.stop();
   zAxis.stop();
@@ -100,8 +102,13 @@ void pollStopCommand() {
   }
 }
 
+// 自動移動（JOGやHOME）の時も、本物のDIRピンを強制的に正しい方向に向けます
 void runUntilArrived() {
   while (!stopped && !allStopped()) {
+    if (arm1.distanceToGo() != 0) digitalWrite(J1_DIR_PIN, arm1.distanceToGo() > 0 ? HIGH : LOW);
+    if (arm2.distanceToGo() != 0) digitalWrite(J2_DIR_PIN, arm2.distanceToGo() > 0 ? HIGH : LOW);
+    if (zAxis.distanceToGo() != 0) digitalWrite(Z_DIR_PIN, zAxis.distanceToGo() > 0 ? HIGH : LOW);
+    
     arm1.run();
     arm2.run();
     zAxis.run();
@@ -111,9 +118,9 @@ void runUntilArrived() {
 
 void moveTo(long j1, long j2, long z) {
   if (stopped) return;
-  driveSpeedJ1 = 0.0;
-  driveSpeedJ2 = 0.0;
-  driveSpeedZ = 0.0;
+  arm1DriveSpeed = 0.0;
+  arm2DriveSpeed = 0.0;
+  zDriveSpeed = 0.0;
   arm1.moveTo(j1);
   arm2.moveTo(j2);
   zAxis.moveTo(z);
@@ -130,6 +137,23 @@ void zeroAll() {
   arm1.setCurrentPosition(0);
   arm2.setCurrentPosition(0);
   zAxis.setCurrentPosition(0);
+}
+
+// 手動操作（ブラウザからのDRIVE）の時、本物のDIRピンを固定します
+void setDriveSpeed(const String &axisName, float speed) {
+  if (axisName == "J1") {
+    arm1DriveSpeed = speed;
+    arm1.setSpeed(speed);
+    if (speed != 0) digitalWrite(J1_DIR_PIN, speed > 0 ? HIGH : LOW);
+  } else if (axisName == "J2") {
+    arm2DriveSpeed = speed;
+    arm2.setSpeed(speed);
+    if (speed != 0) digitalWrite(J2_DIR_PIN, speed > 0 ? HIGH : LOW);
+  } else if (axisName == "Z") {
+    zDriveSpeed = speed;
+    zAxis.setSpeed(speed);
+    if (speed != 0) digitalWrite(Z_DIR_PIN, speed > 0 ? HIGH : LOW);
+  }
 }
 
 void printStatus() {
@@ -173,10 +197,7 @@ void handleCommand(String commandLine) {
     float maxAllowedSpeed = (axisName == "Z") ? Z_MAX_SPEED : ARM_MAX_SPEED;
     speed = constrain(speed, -maxAllowedSpeed, maxAllowedSpeed);
     
-    if (axisName == "J1") driveSpeedJ1 = speed;
-    else if (axisName == "J2") driveSpeedJ2 = speed;
-    else if (axisName == "Z") driveSpeedZ = speed;
-
+    setDriveSpeed(axisName, speed);
     Serial.println(speed == 0 ? "OK drive stop" : "OK drive");
     return;
   }
@@ -235,76 +256,13 @@ void handleCommand(String commandLine) {
   }
 }
 
-// ★ ここが今回の一番の肝です！
-void customDriveLoop() {
-  unsigned long now = micros();
-
-  // J1軸
-  if (driveSpeedJ1 != 0.0) {
-    unsigned long interval = 1000000.0 / abs(driveSpeedJ1);
-    if (now - lastStepJ1 >= interval) {
-      lastStepJ1 = now;
-      bool isPositive = (driveSpeedJ1 > 0);
-      
-      // ① 方向（DIR）をセット
-      digitalWrite(J1_DIR_PIN, isPositive ? HIGH : LOW);
-      
-      // ② ★超重要：モータードライバに方向を認識させるための待機時間！
-      delayMicroseconds(20); 
-      
-      // ③ パルス（STEP）を出す
-      digitalWrite(J1_STEP_PIN, HIGH);
-      delayMicroseconds(20); // パルスもしっかり読ませる
-      digitalWrite(J1_STEP_PIN, LOW);
-      
-      arm1.setCurrentPosition(arm1.currentPosition() + (isPositive ? 1 : -1));
-    }
-  }
-
-  // J2軸
-  if (driveSpeedJ2 != 0.0) {
-    unsigned long interval = 1000000.0 / abs(driveSpeedJ2);
-    if (now - lastStepJ2 >= interval) {
-      lastStepJ2 = now;
-      bool isPositive = (driveSpeedJ2 > 0);
-      
-      digitalWrite(J2_DIR_PIN, isPositive ? HIGH : LOW);
-      delayMicroseconds(20); // ★同様に追加
-      digitalWrite(J2_STEP_PIN, HIGH);
-      delayMicroseconds(20);
-      digitalWrite(J2_STEP_PIN, LOW);
-      
-      arm2.setCurrentPosition(arm2.currentPosition() + (isPositive ? 1 : -1));
-    }
-  }
-
-  // Z軸
-  if (driveSpeedZ != 0.0) {
-    unsigned long interval = 1000000.0 / abs(driveSpeedZ);
-    if (now - lastStepZ >= interval) {
-      lastStepZ = now;
-      bool isPositive = (driveSpeedZ > 0);
-      
-      digitalWrite(Z_DIR_PIN, isPositive ? HIGH : LOW);
-      delayMicroseconds(20); // ★同様に追加
-      digitalWrite(Z_STEP_PIN, HIGH);
-      delayMicroseconds(20);
-      digitalWrite(Z_STEP_PIN, LOW);
-      
-      zAxis.setCurrentPosition(zAxis.currentPosition() + (isPositive ? 1 : -1));
-    }
-  }
-}
-
 void setup() {
   pinMode(ENABLE_PIN, OUTPUT);
   digitalWrite(ENABLE_PIN, LOW);
 
-  pinMode(J1_STEP_PIN, OUTPUT);
+  // ★超重要：本物のDIRピンを自分の手で制御するためにOUTPUT設定
   pinMode(J1_DIR_PIN, OUTPUT);
-  pinMode(J2_STEP_PIN, OUTPUT);
   pinMode(J2_DIR_PIN, OUTPUT);
-  pinMode(Z_STEP_PIN, OUTPUT);
   pinMode(Z_DIR_PIN, OUTPUT);
 
   ESP32PWM::allocateTimer(0);
@@ -335,11 +293,25 @@ void loop() {
   }
   
   if (!stopped) {
-    if (driveSpeedJ1 != 0.0 || driveSpeedJ2 != 0.0 || driveSpeedZ != 0.0) {
-      customDriveLoop();
+    // 常に「現在の目的方向」に合わせてDIRピンを固定し続けます
+    if (arm1DriveSpeed != 0.0) {
+      arm1.runSpeed();
     } else {
+      if (arm1.distanceToGo() != 0) digitalWrite(J1_DIR_PIN, arm1.distanceToGo() > 0 ? HIGH : LOW);
       arm1.run();
+    }
+    
+    if (arm2DriveSpeed != 0.0) {
+      arm2.runSpeed();
+    } else {
+      if (arm2.distanceToGo() != 0) digitalWrite(J2_DIR_PIN, arm2.distanceToGo() > 0 ? HIGH : LOW);
       arm2.run();
+    }
+
+    if (zDriveSpeed != 0.0) {
+      zAxis.runSpeed();
+    } else {
+      if (zAxis.distanceToGo() != 0) digitalWrite(Z_DIR_PIN, zAxis.distanceToGo() > 0 ? HIGH : LOW);
       zAxis.run();
     }
   }
