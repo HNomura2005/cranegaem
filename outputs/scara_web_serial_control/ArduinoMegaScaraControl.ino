@@ -5,7 +5,7 @@ constexpr uint32_t BAUD_RATE = 115200;
 
 // --- ESP32 本物のピン設定 ---
 constexpr uint8_t J1_STEP_PIN = 25;
-constexpr uint8_t J1_DIR_PIN = 26;
+constexpr uint8_t J1_DIR_PIN = 22; // 26から22に変更
 constexpr uint8_t J2_STEP_PIN = 27;
 constexpr uint8_t J2_DIR_PIN = 14;
 
@@ -15,8 +15,7 @@ constexpr uint8_t Z_DIR_PIN = 32;
 constexpr uint8_t ENABLE_PIN = 16;
 constexpr uint8_t ARM_SERVO_PIN = 13;
 
-// --- ★秘密兵器：ダミーDIRピン（ライブラリを騙す用） ---
-// ESP32の使っていないピンを割り当てて、ライブラリの誤作動を完全に防ぎます
+// --- ★秘密兵器：ダミーDIRピン（ライブラリの誤作動防止用） ---
 constexpr uint8_t DUMMY_DIR_J1 = 4;
 constexpr uint8_t DUMMY_DIR_J2 = 5;
 constexpr uint8_t DUMMY_DIR_Z = 18;
@@ -31,7 +30,6 @@ constexpr long HOME_J1 = 0;
 constexpr long HOME_J2 = 0;
 constexpr int SAFE_SERVO_ANGLE = 70; 
 
-// ★ライブラリにはダミーピンを渡して、STEP（進む）の処理だけを任せます
 AccelStepper arm1(AccelStepper::DRIVER, J1_STEP_PIN, DUMMY_DIR_J1);
 AccelStepper arm2(AccelStepper::DRIVER, J2_STEP_PIN, DUMMY_DIR_J2);
 AccelStepper zAxis(AccelStepper::DRIVER, Z_STEP_PIN, DUMMY_DIR_Z);
@@ -102,7 +100,6 @@ void pollStopCommand() {
   }
 }
 
-// 自動移動（JOGやHOME）の時も、本物のDIRピンを常に上書き固定します
 void runUntilArrived() {
   while (!stopped && !allStopped()) {
     if (arm1.distanceToGo() != 0) digitalWrite(J1_DIR_PIN, arm1.distanceToGo() > 0 ? HIGH : LOW);
@@ -139,7 +136,6 @@ void zeroAll() {
   zAxis.setCurrentPosition(0);
 }
 
-// 手動操作（ブラウザからのDRIVE）の速度をセット
 void setDriveSpeed(const String &axisName, float speed) {
   if (axisName == "J1") {
     arm1DriveSpeed = speed;
@@ -257,7 +253,7 @@ void setup() {
   pinMode(ENABLE_PIN, OUTPUT);
   digitalWrite(ENABLE_PIN, LOW);
 
-  // ★超重要：本物のDIRピンを自分たちで制御するためにOUTPUT設定
+  // ★本物のDIRピンを出力設定
   pinMode(J1_DIR_PIN, OUTPUT);
   pinMode(J2_DIR_PIN, OUTPUT);
   pinMode(Z_DIR_PIN, OUTPUT);
@@ -292,7 +288,6 @@ void loop() {
   if (!stopped) {
     // --- J1軸 ---
     if (arm1DriveSpeed != 0.0) {
-      // 速度指定で動かす直前に、絶対に方向（HIGH/LOW）を書き込む！
       digitalWrite(J1_DIR_PIN, arm1DriveSpeed > 0 ? HIGH : LOW);
       arm1.runSpeed();
     } else {
