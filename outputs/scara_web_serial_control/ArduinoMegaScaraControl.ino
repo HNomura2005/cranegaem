@@ -138,24 +138,39 @@ void zeroAll() {
 }
 
 // ==========================================
-// ★変更箇所：ここで「同時に動かさない（排他制御）」を行います
+// ★変更箇所：排他制御 ＋ 無制限回転のための位置リセット処理
 // ==========================================
 void setDriveSpeed(const String &axisName, float speed) {
   if (axisName == "J1") {
-    // J2が動いている間は、J1の動作命令を無視して位置を固定する
+    // 排他制御：J2が動いている間はJ1の動作を無視
     if (speed != 0.0 && arm2DriveSpeed != 0.0) return;
     
     arm1DriveSpeed = speed;
-    arm1.setSpeed(speed);
+    if (speed == 0.0) {
+      // 停止した瞬間に、現在の位置を新しい「目標」に設定して勝手に戻るのを防ぐ（無制限回転対応）
+      arm1.moveTo(arm1.currentPosition());
+    } else {
+      arm1.setSpeed(speed);
+    }
+    
   } else if (axisName == "J2") {
-    // J1が動いている間は、J2の動作命令を無視して位置を固定する
+    // 排他制御：J1が動いている間はJ2の動作を無視
     if (speed != 0.0 && arm1DriveSpeed != 0.0) return;
     
     arm2DriveSpeed = speed;
-    arm2.setSpeed(speed);
+    if (speed == 0.0) {
+      arm2.moveTo(arm2.currentPosition());
+    } else {
+      arm2.setSpeed(speed);
+    }
+    
   } else if (axisName == "Z") {
     zDriveSpeed = speed;
-    zAxis.setSpeed(speed);
+    if (speed == 0.0) {
+      zAxis.moveTo(zAxis.currentPosition());
+    } else {
+      zAxis.setSpeed(speed);
+    }
   }
 }
 
