@@ -51,7 +51,7 @@
       font-size: 14px;
       font-weight: 700;
       text-align: center;
-      transition: all 0.3s ease; /* 色変化を滑らかにするアニメーション */
+      transition: all 0.3s ease;
     }
 
     .toolbar,
@@ -233,7 +233,7 @@
 
     <section class="toolbar">
       <button class="primary" id="connect">Arduinoに接続</button>
-      <button id="disconnect" disabled>切断</button> <!-- 追加機能3: 切断ボタン -->
+      <button id="disconnect" disabled>切断</button> 
       <button class="danger" id="stop">全停止</button>
       <button class="warn" id="home">初期位置へ戻る</button>
       <button class="info" id="zero">ここを原点にする</button>
@@ -247,11 +247,13 @@
             <div style="display: flex; gap: 20px; margin-bottom: 8px;">
               <div class="field">
                 <label for="speed">アーム速度</label>
-                <input id="speed" type="number" value="450" min="50" max="1500" step="50">
+                <!-- ★ maxを4000に引き上げ -->
+                <input id="speed" type="number" value="450" min="50" max="4000" step="50">
               </div>
               <div class="field">
                 <label for="speedZ">Z軸昇降速度</label>
-                <input id="speedZ" type="number" value="1500" min="50" max="3000" step="50">
+                <!-- ★ maxを4000に引き上げ -->
+                <input id="speedZ" type="number" value="1500" min="50" max="4000" step="50">
               </div>
             </div>
 
@@ -285,7 +287,6 @@
             <button class="small" id="servoPlus" style="flex: 1;">+5度</button>
           </div>
 
-          <!-- 追加機能5: サーボ角度の直感的なスライダー -->
           <div style="margin-top: 12px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
             <label style="font-size: 14px;">角度指定:</label>
             <input type="range" id="servoSlider" min="0" max="180" value="70" style="flex: 1;">
@@ -485,7 +486,6 @@
         textEncoder.readable.pipeTo(port.writable).catch(() => {});
         writer = textEncoder.writable.getWriter();
 
-        // 追加機能3: 接続成功時のステータス色変更・切断ボタン有効化
         statusEl.textContent = "接続済み";
         statusEl.style.backgroundColor = "#e6fffa"; 
         statusEl.style.borderColor = "#38b2ac";
@@ -499,7 +499,6 @@
       }
     });
 
-    // 追加機能3: 切断ボタンの処理（確実なリセットのため画面リロード）
     document.querySelector("#disconnect").addEventListener("click", () => {
       if (confirm("通信を切断し、コントローラーをリセットしますか？")) {
         location.reload();
@@ -575,15 +574,12 @@
       servoValue.textContent = currentVal + "°";
     });
 
-    // 追加機能5: サーボスライダーの処理
     const servoSlider = document.querySelector("#servoSlider");
     const servoValue = document.querySelector("#servoValue");
 
-    // スライダーを動かしている最中は数値だけ更新
     servoSlider.addEventListener("input", (e) => {
       servoValue.textContent = e.target.value + "°";
     });
-    // スライダーから指を離した時にコマンド送信
     servoSlider.addEventListener("change", (e) => {
       sendCommand(`ARM ${e.target.value}`);
     });
