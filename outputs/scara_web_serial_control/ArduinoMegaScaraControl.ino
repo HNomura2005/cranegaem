@@ -5,7 +5,7 @@ constexpr uint32_t BAUD_RATE = 115200;
 
 // --- ESP32 本物のピン設定 ---
 constexpr uint8_t J1_STEP_PIN = 25;
-constexpr uint8_t J1_DIR_PIN = 22; // 26から22に変更
+constexpr uint8_t J1_DIR_PIN = 22; 
 constexpr uint8_t J2_STEP_PIN = 27;
 constexpr uint8_t J2_DIR_PIN = 14;
 
@@ -21,9 +21,7 @@ constexpr uint8_t DUMMY_DIR_J2 = 5;
 constexpr uint8_t DUMMY_DIR_Z = 18;
 
 // --- 動作設定 ---
-// コントローラー側で自由に速度を選べるように、上限を4000まで開放しました
 constexpr float ARM_MAX_SPEED = 4000.0;
-// 急加速防止のため加速度は低めに設定
 constexpr float ARM_ACCELERATION = 50.0; 
 
 constexpr float Z_MAX_SPEED = 4000.0;   
@@ -139,11 +137,20 @@ void zeroAll() {
   zAxis.setCurrentPosition(0);
 }
 
+// ==========================================
+// ★変更箇所：ここで「同時に動かさない（排他制御）」を行います
+// ==========================================
 void setDriveSpeed(const String &axisName, float speed) {
   if (axisName == "J1") {
+    // J2が動いている間は、J1の動作命令を無視して位置を固定する
+    if (speed != 0.0 && arm2DriveSpeed != 0.0) return;
+    
     arm1DriveSpeed = speed;
     arm1.setSpeed(speed);
   } else if (axisName == "J2") {
+    // J1が動いている間は、J2の動作命令を無視して位置を固定する
+    if (speed != 0.0 && arm1DriveSpeed != 0.0) return;
+    
     arm2DriveSpeed = speed;
     arm2.setSpeed(speed);
   } else if (axisName == "Z") {
