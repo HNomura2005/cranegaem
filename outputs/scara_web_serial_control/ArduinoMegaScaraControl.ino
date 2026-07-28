@@ -21,10 +21,13 @@ constexpr uint8_t DUMMY_DIR_J2 = 5;
 constexpr uint8_t DUMMY_DIR_Z = 18;
 
 // --- 動作設定 ---
-constexpr float ARM_MAX_SPEED = 900.0;
-constexpr float ARM_ACCELERATION = 600.0;
-constexpr float Z_MAX_SPEED = 2000.0;   
-constexpr float Z_ACCELERATION = 600.0; 
+// コントローラー側で自由に速度を選べるように、上限を4000まで開放しました
+constexpr float ARM_MAX_SPEED = 4000.0;
+// 急加速防止のため加速度は低めに設定
+constexpr float ARM_ACCELERATION = 50.0; 
+
+constexpr float Z_MAX_SPEED = 4000.0;   
+constexpr float Z_ACCELERATION = 100.0; 
 
 constexpr long HOME_J1 = 0;
 constexpr long HOME_J2 = 0;
