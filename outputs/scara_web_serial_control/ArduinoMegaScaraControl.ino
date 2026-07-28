@@ -16,7 +16,7 @@ constexpr uint8_t ENABLE_PIN = 16;
 constexpr uint8_t ARM_SERVO_PIN = 13;
 
 // --- ★秘密兵器：ダミーDIRピン（ライブラリを騙す用） ---
-// ESP32の使っていないピンを割り当てて、ライブラリの誤作動を隔離します
+// ESP32の使っていないピンを割り当てて、ライブラリの誤作動を完全に防ぎます
 constexpr uint8_t DUMMY_DIR_J1 = 4;
 constexpr uint8_t DUMMY_DIR_J2 = 5;
 constexpr uint8_t DUMMY_DIR_Z = 18;
@@ -31,7 +31,7 @@ constexpr long HOME_J1 = 0;
 constexpr long HOME_J2 = 0;
 constexpr int SAFE_SERVO_ANGLE = 70; 
 
-// ★ライブラリにはダミーピンを渡して、STEPピンだけをパルスさせます
+// ★ライブラリにはダミーピンを渡して、STEP（進む）の処理だけを任せます
 AccelStepper arm1(AccelStepper::DRIVER, J1_STEP_PIN, DUMMY_DIR_J1);
 AccelStepper arm2(AccelStepper::DRIVER, J2_STEP_PIN, DUMMY_DIR_J2);
 AccelStepper zAxis(AccelStepper::DRIVER, Z_STEP_PIN, DUMMY_DIR_Z);
@@ -102,7 +102,7 @@ void pollStopCommand() {
   }
 }
 
-// 自動移動（JOGやHOME）の時も、本物のDIRピンを強制的に正しい方向に向けます
+// 自動移動（JOGやHOME）の時も、本物のDIRピンを常に上書き固定します
 void runUntilArrived() {
   while (!stopped && !allStopped()) {
     if (arm1.distanceToGo() != 0) digitalWrite(J1_DIR_PIN, arm1.distanceToGo() > 0 ? HIGH : LOW);
@@ -139,20 +139,17 @@ void zeroAll() {
   zAxis.setCurrentPosition(0);
 }
 
-// 手動操作（ブラウザからのDRIVE）の時、本物のDIRピンを固定します
+// 手動操作（ブラウザからのDRIVE）の速度をセット
 void setDriveSpeed(const String &axisName, float speed) {
   if (axisName == "J1") {
     arm1DriveSpeed = speed;
     arm1.setSpeed(speed);
-    if (speed != 0) digitalWrite(J1_DIR_PIN, speed > 0 ? HIGH : LOW);
   } else if (axisName == "J2") {
     arm2DriveSpeed = speed;
     arm2.setSpeed(speed);
-    if (speed != 0) digitalWrite(J2_DIR_PIN, speed > 0 ? HIGH : LOW);
   } else if (axisName == "Z") {
     zDriveSpeed = speed;
     zAxis.setSpeed(speed);
-    if (speed != 0) digitalWrite(Z_DIR_PIN, speed > 0 ? HIGH : LOW);
   }
 }
 
@@ -260,7 +257,7 @@ void setup() {
   pinMode(ENABLE_PIN, OUTPUT);
   digitalWrite(ENABLE_PIN, LOW);
 
-  // ★超重要：本物のDIRピンを自分の手で制御するためにOUTPUT設定
+  // ★超重要：本物のDIRピンを自分たちで制御するためにOUTPUT設定
   pinMode(J1_DIR_PIN, OUTPUT);
   pinMode(J2_DIR_PIN, OUTPUT);
   pinMode(Z_DIR_PIN, OUTPUT);
@@ -293,25 +290,37 @@ void loop() {
   }
   
   if (!stopped) {
-    // 常に「現在の目的方向」に合わせてDIRピンを固定し続けます
+    // --- J1軸 ---
     if (arm1DriveSpeed != 0.0) {
+      // 速度指定で動かす直前に、絶対に方向（HIGH/LOW）を書き込む！
+      digitalWrite(J1_DIR_PIN, arm1DriveSpeed > 0 ? HIGH : LOW);
       arm1.runSpeed();
     } else {
-      if (arm1.distanceToGo() != 0) digitalWrite(J1_DIR_PIN, arm1.distanceToGo() > 0 ? HIGH : LOW);
+      if (arm1.distanceToGo() != 0) {
+        digitalWrite(J1_DIR_PIN, arm1.distanceToGo() > 0 ? HIGH : LOW);
+      }
       arm1.run();
     }
     
+    // --- J2軸 ---
     if (arm2DriveSpeed != 0.0) {
+      digitalWrite(J2_DIR_PIN, arm2DriveSpeed > 0 ? HIGH : LOW);
       arm2.runSpeed();
     } else {
-      if (arm2.distanceToGo() != 0) digitalWrite(J2_DIR_PIN, arm2.distanceToGo() > 0 ? HIGH : LOW);
+      if (arm2.distanceToGo() != 0) {
+        digitalWrite(J2_DIR_PIN, arm2.distanceToGo() > 0 ? HIGH : LOW);
+      }
       arm2.run();
     }
 
+    // --- Z軸 ---
     if (zDriveSpeed != 0.0) {
+      digitalWrite(Z_DIR_PIN, zDriveSpeed > 0 ? HIGH : LOW);
       zAxis.runSpeed();
     } else {
-      if (zAxis.distanceToGo() != 0) digitalWrite(Z_DIR_PIN, zAxis.distanceToGo() > 0 ? HIGH : LOW);
+      if (zAxis.distanceToGo() != 0) {
+        digitalWrite(Z_DIR_PIN, zAxis.distanceToGo() > 0 ? HIGH : LOW);
+      }
       zAxis.run();
     }
   }
