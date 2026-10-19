@@ -3,7 +3,7 @@
 
 constexpr uint32_t BAUD_RATE = 115200;
 
-// --- ESP32 本物のピン設定 ---
+// ESP32 GPIO assignments for the motor drivers
 constexpr uint8_t J1_STEP_PIN = 25;
 constexpr uint8_t J1_DIR_PIN = 22; 
 constexpr uint8_t J2_STEP_PIN = 27;
@@ -15,7 +15,7 @@ constexpr uint8_t Z_DIR_PIN = 32;
 constexpr uint8_t ENABLE_PIN = 16;
 constexpr uint8_t ARM_SERVO_PIN = 13;
 
-// --- ★秘密兵器：ダミーDIRピン（ライブラリの誤作動防止用） ---
+// AccelStepper uses these unconnected DIR outputs; actual DIR pins are set manually.
 constexpr uint8_t DUMMY_DIR_J1 = 4;
 constexpr uint8_t DUMMY_DIR_J2 = 5;
 constexpr uint8_t DUMMY_DIR_Z = 18;
@@ -276,7 +276,7 @@ void setup() {
   pinMode(ENABLE_PIN, OUTPUT);
   digitalWrite(ENABLE_PIN, LOW);
 
-  // ★本物のDIRピンを出力設定
+  // Configure the DIR outputs connected to the motor drivers.
   pinMode(J1_DIR_PIN, OUTPUT);
   pinMode(J2_DIR_PIN, OUTPUT);
   pinMode(Z_DIR_PIN, OUTPUT);
