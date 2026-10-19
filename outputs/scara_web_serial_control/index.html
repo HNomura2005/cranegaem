@@ -228,11 +228,11 @@
   <main>
     <header>
       <h1>PAKIRAロボ コントローラー</h1>
-      <div class="status" id="status">アンタッチブル</div>
+      <div class="status" id="status">未接続</div>
     </header>
 
     <section class="toolbar">
-      <button class="primary" id="connect">Arduinoに接続</button>
+      <button class="primary" id="connect">ESP32に接続</button>
       <button id="disconnect" disabled>切断</button> 
       <button class="danger" id="stop">全停止</button>
       <button class="info" id="zero">ここを原点にする</button>
@@ -472,8 +472,8 @@
 
     document.querySelector("#connect").addEventListener("click", async () => {
       if (!("serial" in navigator)) {
-        statusEl.textContent = "Web Serialあかんで";
-        log("ChromeまたはEdgeであけろ");
+        statusEl.textContent = "Web Serial API非対応";
+        log("Web Serial APIに対応したChromeまたはEdgeで開いてください。");
         return;
       }
 
@@ -491,10 +491,10 @@
         document.getElementById("connect").disabled = true;
         document.getElementById("disconnect").disabled = false;
 
-        log("Arduinoに接続しました");
+        log("ESP32に接続しました");
         readLoop();
       } catch (e) {
-        log("接続がキャンセルされたか、エラーが発生した");
+        log("接続がキャンセルされたか、接続エラーが発生しました。");
       }
     });
 
