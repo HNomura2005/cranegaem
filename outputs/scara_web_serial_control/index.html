@@ -257,28 +257,28 @@
             </div>
 
             <div class="axis">
-              <label>肩</label>
-              <button data-axis="J1" data-dir="-1">左回転</button>
-              <button data-axis="J1" data-dir="1">右回転</button>
+              <label>かた</label>
+              <button data-axis="J1" data-dir="-1">ひだりかいてん</button>
+              <button data-axis="J1" data-dir="1">みぎかいてん</button>
             </div>
             <div class="axis">
-              <label>肘</label>
-              <button data-axis="J2" data-dir="-1">左回転</button>
-              <button data-axis="J2" data-dir="1">右回転</button>
+              <label>ひじ</label>
+              <button data-axis="J2" data-dir="-1">ひだりかいてん</button>
+              <button data-axis="J2" data-dir="1">みぎかいてん</button>
             </div>
             <div class="axis">
-              <label>高さ</label>
-              <button data-axis="Z" data-dir="-1">上がる</button>
-              <button data-axis="Z" data-dir="1">下がる</button>
+              <label>たかさ</label>
+              <button data-axis="Z" data-dir="-1">あがる</button>
+              <button data-axis="Z" data-dir="1">さがる</button>
             </div>
           </div>
         </div>
 
         <div class="panel">
-          <h2>アーム（サーボ）設定</h2>
+          <h2>アーム（サーボ）せってい</h2>
           <div class="magnet">
-            <button class="primary" id="closeArm">掴む (0度)</button>
-            <button id="openArm">離す (70度)</button> 
+            <button class="primary" id="closeArm">つかむ (0度)</button>
+            <button id="openArm">はなす (70度)</button> 
           </div>
           
           <div style="margin-top: 12px; margin-bottom: 8px; display: flex; gap: 8px;">
@@ -287,7 +287,7 @@
           </div>
 
           <div style="margin-top: 12px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-            <label style="font-size: 14px;">角度指定:</label>
+            <label style="font-size: 14px;">かくどしてい:</label>
             <input type="range" id="servoSlider" min="0" max="180" value="70" style="flex: 1;">
             <span id="servoValue" style="width: 40px; font-family: monospace; font-size: 15px; font-weight: bold;">70°</span>
           </div>
@@ -296,31 +296,31 @@
         </div>
         
         <div class="panel">
-          <h2>キーボード操作</h2>
+          <h2>キーボードそうさ</h2>
           <div class="key-guide">
             <div class="guide-item">
               <div>
                 <span class="key-badge">W</span><span class="key-badge">A</span><span class="key-badge">S</span><span class="key-badge">D</span>
               </div>
-              <span class="guide-desc">平面移動</span>
+              <span class="guide-desc">へいめんいどう</span>
             </div>
             <div class="guide-item">
               <div>
                 <span class="key-badge">Q</span><span class="key-badge">E</span>
               </div>
-              <span class="guide-desc">上下移動</span>
+              <span class="guide-desc">じょうげいどう</span>
             </div>
             <div class="guide-item">
               <div>
                 <span class="key-badge">Space</span>
               </div>
-              <span class="guide-desc">掴む</span>
+              <span class="guide-desc">つかむ</span>
             </div>
             <div class="guide-item">
               <div>
                 <span class="key-badge">Shift</span>
               </div>
-              <span class="guide-desc">離す</span>
+              <span class="guide-desc">はなす</span>
             </div>
           </div>
         </div>
