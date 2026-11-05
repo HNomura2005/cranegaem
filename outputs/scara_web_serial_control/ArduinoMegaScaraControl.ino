@@ -320,7 +320,7 @@ void loop() {
       arm1.run();
     }
     
-    // --- J2軸 ---
+    // --- J2軸 --
     if (arm2DriveSpeed != 0.0) {
       digitalWrite(J2_DIR_PIN, arm2DriveSpeed > 0 ? HIGH : LOW);
       arm2.runSpeed();
