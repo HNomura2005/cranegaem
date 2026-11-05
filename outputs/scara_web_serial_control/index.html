@@ -250,7 +250,7 @@
                 <input id="speed" type="number" value="100" min="50" max="4000" step="50">
               </div>
               <div class="field">
-                <label for="speedZ">Zじくはやさ</label>
+                <label for="speedZ">じょうげはやさ</label>
                 <!-- 初期値を 700 に変更しました -->
                 <input id="speedZ" type="number" value="700" min="50" max="4000" step="50">
               </div>
@@ -373,7 +373,7 @@
 
     async function sendCommand(command, hideLog = false) {
       if (!writer) {
-        if (!hideLog) log(`[未接続] ${command}`);
+        if (!hideLog) log(`[まだ] ${command}`);
         return false;
       }
       await writer.write(`${command}\n`);
@@ -466,7 +466,7 @@
           }
         }
       } catch (error) {
-        log(`受信が止まりました: ${error.message}`);
+        log(`じゅしんがとまりました: ${error.message}`);
       }
     }
 
@@ -485,13 +485,13 @@
         textEncoder.readable.pipeTo(port.writable).catch(() => {});
         writer = textEncoder.writable.getWriter();
 
-        statusEl.textContent = "接続済み";
+        statusEl.textContent = "せつぞくちゅう";
         statusEl.style.backgroundColor = "#e6fffa"; 
         statusEl.style.borderColor = "#38b2ac";
         document.getElementById("connect").disabled = true;
         document.getElementById("disconnect").disabled = false;
 
-        log("ESP32に接続しました");
+        log("ESP32にせつぞくしました");
         readLoop();
       } catch (e) {
         log("接続がキャンセルされたか、接続エラーが発生しました。");
