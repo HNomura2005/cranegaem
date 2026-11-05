@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>パキラロボ コントローラー</title>
+<title>ピンポンゲームコントローラー</title>
 
 <style>
   * {
@@ -156,15 +156,15 @@
 
 <body>
 <main>
-  <h1>パキラロボ コントローラー</h1>
+  <h1>ピンポンゲームコントローラー</h1>
 
-  <div id="status" role="status">未接続</div>
+  <div id="status" role="status">だめ</div>
 
   <div class="toolbar">
-    <button id="connect" class="primary">ESP32に接続</button>
-    <button id="disconnect" disabled>切断</button>
-    <button id="stop" class="danger" disabled>全停止</button>
-    <button id="resume" disabled>操作再開</button>
+    <button id="connect" class="primary">せつぞく</button>
+    <button id="disconnect" disabled>せつだん</button>
+    <button id="stop" class="danger" disabled>ぜんていし</button>
+    <button id="resume" disabled>そうささいかい</button>
   </div>
 
   <p class="hint">
@@ -175,19 +175,19 @@
   <div class="layout">
     <div>
       <section>
-        <h2>クレーン操作</h2>
+        <h2>クレーンそうさ</h2>
 
         <div class="row">
           <label>
             入力方法
             <select id="mode">
-              <option value="manual">画面ボタン・キーボード</option>
+              <option value="manual">キーボード</option>
               <option value="gamepad">ゲームパッド</option>
             </select>
           </label>
 
           <label>
-            肩・肘の速さ
+            かた・ひじの速さ
             <input
               id="speed"
               type="number"
@@ -199,7 +199,7 @@
           </label>
 
           <label>
-            上下の速さ
+            じょうげの速さ
             <input
               id="speedZ"
               type="number"
@@ -212,21 +212,21 @@
         </div>
 
         <div class="axis">
-          <b>肩 J1</b>
-          <button data-axis="0" data-dir="-1">左回転 A</button>
-          <button data-axis="0" data-dir="1">右回転 D</button>
+          <b>かた J1</b>
+          <button data-axis="0" data-dir="-1">ひだりかいてん A</button>
+          <button data-axis="0" data-dir="1">みぎかいてん D</button>
         </div>
 
         <div class="axis">
-          <b>肘 J2</b>
-          <button data-axis="1" data-dir="1">正回転 W</button>
-          <button data-axis="1" data-dir="-1">逆回転 S</button>
+          <b>ひじ J2</b>
+          <button data-axis="1" data-dir="1">せいかいてん W</button>
+          <button data-axis="1" data-dir="-1">ぎゃくかいてん S</button>
         </div>
 
         <div class="axis">
-          <b>高さ Z</b>
-          <button data-axis="2" data-dir="-1">上がる E</button>
-          <button data-axis="2" data-dir="1">下がる Q</button>
+          <b>たかさ Z</b>
+          <button data-axis="2" data-dir="-1">あがる E</button>
+          <button data-axis="2" data-dir="1">さがる Q</button>
         </div>
 
         <p class="hint">
@@ -255,7 +255,7 @@
           <button id="servoPlus" disabled>＋5°</button>
         </div>
 
-        <p id="servoValue">角度を取得していません</p>
+        <p id="servoValue">かくどをしゅとくしていません</p>
 
         <input
           id="servoSlider"
@@ -264,7 +264,7 @@
           max="180"
           value="170"
           disabled
-          aria-label="サーボの基準からの角度"
+          aria-label="サーボのきじゅんからのかくど"
         >
 
         <button id="servoZero" disabled>
