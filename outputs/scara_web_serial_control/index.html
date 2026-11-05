@@ -228,29 +228,29 @@
   <main>
     <header>
       <h1>PAKIRAロボ コントローラー</h1>
-      <div class="status" id="status">未接続</div>
+      <div class="status" id="status">まだ</div>
     </header>
 
     <section class="toolbar">
-      <button class="primary" id="connect">ESP32に接続</button>
-      <button id="disconnect" disabled>切断</button> 
-      <button class="danger" id="stop">全停止</button>
-      <button class="info" id="zero">ここを原点にする</button>
+      <button class="primary" id="connect">ESP32にせつぞく</button>
+      <button id="disconnect" disabled>せつだん</button> 
+      <button class="danger" id="stop">ぜんていし</button>
+      <button class="info" id="zero">ここをげんてんにする</button>
     </section>
 
     <section class="layout">
       <div>
         <div class="panel">
-          <h2>クレーン手動操作</h2>
+          <h2>クレーンそうさ</h2>
           <div class="manual">
             <div style="display: flex; gap: 20px; margin-bottom: 8px;">
               <div class="field">
-                <label for="speed">アーム速度</label>
+                <label for="speed">アームはやさ</label>
                 <!-- 初期値を 100 に変更しました -->
                 <input id="speed" type="number" value="100" min="50" max="4000" step="50">
               </div>
               <div class="field">
-                <label for="speedZ">Z軸昇降速度</label>
+                <label for="speedZ">Zじくはやさ</label>
                 <!-- 初期値を 700 に変更しました -->
                 <input id="speedZ" type="number" value="700" min="50" max="4000" step="50">
               </div>
@@ -277,13 +277,13 @@
         <div class="panel">
           <h2>アーム（サーボ）せってい</h2>
           <div class="magnet">
-            <button class="primary" id="closeArm">つかむ (0度)</button>
-            <button id="openArm">はなす (70度)</button> 
+            <button class="primary" id="closeArm">つかむ (0ど)</button>
+            <button id="openArm">はなす (70ど)</button> 
           </div>
           
           <div style="margin-top: 12px; margin-bottom: 8px; display: flex; gap: 8px;">
-            <button class="small" id="servoMinus" style="flex: 1;">-5度</button>
-            <button class="small" id="servoPlus" style="flex: 1;">+5度</button>
+            <button class="small" id="servoMinus" style="flex: 1;">-5ど</button>
+            <button class="small" id="servoPlus" style="flex: 1;">+5ど</button>
           </div>
 
           <div style="margin-top: 12px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
@@ -292,7 +292,7 @@
             <span id="servoValue" style="width: 40px; font-family: monospace; font-size: 15px; font-weight: bold;">70°</span>
           </div>
 
-          <button class="info" id="servoZero" style="width: 100%; font-size: 14px;">今の角度をアームの「0度」にする</button>
+          <button class="info" id="servoZero" style="width: 100%; font-size: 14px;">いまのかくどをアームの「0ど」にする</button>
         </div>
         
         <div class="panel">
@@ -335,13 +335,13 @@
         </div>
 
         <div class="panel">
-          <h2>通信ログ</h2>
+          <h2>つうしんログ</h2>
           <pre id="log"></pre>
           <details>
-            <summary>詳細コマンド</summary>
+            <summary>しょうさいコマンド</summary>
             <div class="toolbar" style="margin-top: 10px; margin-bottom: 0;">
               <input id="customCommand" type="text" value="STATUS" style="width: 150px;">
-              <button id="sendCustom">送信</button>
+              <button id="sendCustom">おくる</button>
             </div>
           </details>
         </div>
