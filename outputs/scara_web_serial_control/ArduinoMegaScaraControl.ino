@@ -5,12 +5,12 @@ constexpr uint32_t BAUD_RATE = 115200;
 
 // ESP32 GPIO assignments for the motor drivers
 constexpr uint8_t J1_STEP_PIN = 25;
-constexpr uint8_t J1_DIR_PIN = 22; 
+constexpr uint8_t J1_DIR_PIN = 22;
 constexpr uint8_t J2_STEP_PIN = 27;
 constexpr uint8_t J2_DIR_PIN = 14;
 
-constexpr uint8_t Z_STEP_PIN = 33; 
-constexpr uint8_t Z_DIR_PIN = 32;  
+constexpr uint8_t Z_STEP_PIN = 33;
+constexpr uint8_t Z_DIR_PIN = 32;
 
 constexpr uint8_t ENABLE_PIN = 16;
 constexpr uint8_t ARM_SERVO_PIN = 13;
@@ -22,14 +22,14 @@ constexpr uint8_t DUMMY_DIR_Z = 18;
 
 // --- 動作設定 ---
 constexpr float ARM_MAX_SPEED = 4000.0;
-constexpr float ARM_ACCELERATION = 50.0; 
+constexpr float ARM_ACCELERATION = 50.0;
 
-constexpr float Z_MAX_SPEED = 4000.0;   
-constexpr float Z_ACCELERATION = 100.0; 
+constexpr float Z_MAX_SPEED = 4000.0;
+constexpr float Z_ACCELERATION = 100.0;
 
 constexpr long HOME_J1 = 0;
 constexpr long HOME_J2 = 0;
-constexpr int SAFE_SERVO_ANGLE = 170; 
+constexpr int SAFE_SERVO_ANGLE = 170;
 
 AccelStepper arm1(AccelStepper::DRIVER, J1_STEP_PIN, DUMMY_DIR_J1);
 AccelStepper arm2(AccelStepper::DRIVER, J2_STEP_PIN, DUMMY_DIR_J2);
@@ -38,7 +38,7 @@ Servo armServo;
 
 String line;
 bool stopped = false;
-int servoOffset = 0; 
+int servoOffset = 0;
 
 float arm1DriveSpeed = 0.0;
 float arm2DriveSpeed = 0.0;
@@ -63,7 +63,7 @@ AccelStepper *axisFromName(const String &name) {
   if (name == "J1") return &arm1;
   if (name == "J2") return &arm2;
   if (name == "Z") return &zAxis;
-  return nullptr; 
+  return nullptr;
 }
 
 String nextToken(String &source) {
@@ -106,7 +106,7 @@ void runUntilArrived() {
     if (arm1.distanceToGo() != 0) digitalWrite(J1_DIR_PIN, arm1.distanceToGo() > 0 ? HIGH : LOW);
     if (arm2.distanceToGo() != 0) digitalWrite(J2_DIR_PIN, arm2.distanceToGo() > 0 ? HIGH : LOW);
     if (zAxis.distanceToGo() != 0) digitalWrite(Z_DIR_PIN, zAxis.distanceToGo() > 0 ? HIGH : LOW);
-    
+
     arm1.run();
     arm2.run();
     zAxis.run();
@@ -127,7 +127,7 @@ void moveTo(long j1, long j2, long z) {
 
 void home() {
   stopped = false;
-  moveTo(HOME_J1, HOME_J2, 0); 
+  moveTo(HOME_J1, HOME_J2, 0);
   moveServo(SAFE_SERVO_ANGLE);
 }
 
@@ -137,12 +137,8 @@ void zeroAll() {
   zAxis.setCurrentPosition(0);
 }
 
-
 void setDriveSpeed(const String &axisName, float speed) {
   if (axisName == "J1") {
-    // 排他制御：J2が動いている間はJ1の動作を無視
-    if (speed != 0.0 && arm2DriveSpeed != 0.0) return;
-    
     arm1DriveSpeed = speed;
     if (speed == 0.0) {
       // 停止した瞬間に、現在の位置を新しい「目標」に設定して勝手に戻るのを防ぐ（無制限回転対応）
@@ -150,18 +146,15 @@ void setDriveSpeed(const String &axisName, float speed) {
     } else {
       arm1.setSpeed(speed);
     }
-    
+
   } else if (axisName == "J2") {
-    // 排他制御：J1が動いている間はJ2の動作を無視
-    if (speed != 0.0 && arm1DriveSpeed != 0.0) return;
-    
     arm2DriveSpeed = speed;
     if (speed == 0.0) {
       arm2.moveTo(arm2.currentPosition());
     } else {
       arm2.setSpeed(speed);
     }
-    
+
   } else if (axisName == "Z") {
     zDriveSpeed = speed;
     if (speed == 0.0) {
@@ -187,7 +180,7 @@ void printStatus() {
 void handleCommand(String commandLine) {
   commandLine.trim();
   if (commandLine.length() == 0) return;
-  
+
   String command = nextToken(commandLine);
   command.toUpperCase();
 
@@ -197,22 +190,22 @@ void handleCommand(String commandLine) {
     long steps = commandLine.toInt();
     AccelStepper *axis = axisFromName(axisName);
     if (axis == nullptr) return;
-    
+
     stopped = false;
     axis->move(steps);
     Serial.println("OK jog");
     return;
   }
-  
+
   if (command == "DRIVE") {
     String axisName = nextToken(commandLine);
     axisName.toUpperCase();
     float speed = commandLine.toFloat();
-    
+
     stopped = false;
     float maxAllowedSpeed = (axisName == "Z") ? Z_MAX_SPEED : ARM_MAX_SPEED;
     speed = constrain(speed, -maxAllowedSpeed, maxAllowedSpeed);
-    
+
     setDriveSpeed(axisName, speed);
     Serial.println(speed == 0 ? "OK drive stop" : "OK drive");
     return;
@@ -253,19 +246,19 @@ void handleCommand(String commandLine) {
     Serial.println("OK stop");
     return;
   }
-  
+
   if (command == "HOME") {
     home();
     Serial.println("OK home");
     return;
   }
-  
+
   if (command == "ZERO") {
     zeroAll();
     Serial.println("OK zero");
     return;
   }
-  
+
   if (command == "STATUS") {
     printStatus();
     return;
@@ -292,7 +285,7 @@ void setup() {
   arm2.setAcceleration(ARM_ACCELERATION);
   zAxis.setMaxSpeed(Z_MAX_SPEED);
   zAxis.setAcceleration(Z_ACCELERATION);
-  
+
   Serial.begin(BAUD_RATE);
   Serial.println("READY pingpong scara");
 }
@@ -307,7 +300,7 @@ void loop() {
       line += c;
     }
   }
-  
+
   if (!stopped) {
     // --- J1軸 ---
     if (arm1DriveSpeed != 0.0) {
@@ -319,7 +312,7 @@ void loop() {
       }
       arm1.run();
     }
-    
+
     // --- J2軸 --
     if (arm2DriveSpeed != 0.0) {
       digitalWrite(J2_DIR_PIN, arm2DriveSpeed > 0 ? HIGH : LOW);
