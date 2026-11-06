@@ -248,8 +248,8 @@
 </div>
 <div class="field">
 <label for="speedZ">じょうげはやさ</label>
-<!-- 初期値を 700 に変更しました -->
-<input id="speedZ" type="number" value="700" min="50" max="15000" step="50">
+<!-- 初期値を 11200 に変更しました -->
+<input id="speedZ" type="number" value="11200" min="50" max="15000" step="50">
 </div>
 </div>
  
@@ -485,7 +485,7 @@
         log("ESP32にせつぞくしました");
         readLoop();
       } catch (e) {
-        log("接続がキャンセルされたか、接続エラーが発生しました。");
+        log("せつぞくがキャンセルされたか、せつぞくエラーが発生しました。");
       }
     });
  
@@ -615,13 +615,13 @@
  
     window.addEventListener("gamepadconnected", (e) => {
       gamepadIndex = e.gamepad.index;
-      log(`コントローラー接続: ${e.gamepad.id}`);
+      log(`コントローラーせつぞく: ${e.gamepad.id}`);
       pollGamepad();
     });
  
     window.addEventListener("gamepaddisconnected", (e) => {
       if (gamepadIndex === e.gamepad.index) gamepadIndex = null;
-      log("コントローラーが切断されました");
+      log("コントローラーがせつだんされました");
     });
  
     function pollGamepad() {
